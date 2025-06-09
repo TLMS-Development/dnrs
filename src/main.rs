@@ -1,6 +1,6 @@
 use std::fmt::{self, Debug};
 
-use dnrs::{Config, EnvConfig, FileConfig, run, setup_logger};
+use dnrs::{Config, EnvConfig, FileConfig, RuntimeError, run, setup_logger};
 use lum_config::{
     ConfigPathError, EnvHandler, EnvironmentConfigParseError, FileConfigParseError, FileHandler,
     merge,
@@ -35,7 +35,7 @@ use thiserror::Error;
 const APP_NAME: &str = "dnrs";
 
 #[derive(Error)]
-enum RuntimeError {
+enum Error {
     #[error("Failed to setup logger: {0}")]
     SetLogger(#[from] SetLoggerError),
 
@@ -47,17 +47,20 @@ enum RuntimeError {
 
     #[error("Failed to load file config: {0}")]
     FileHandler(#[from] ConfigPathError),
+
+    #[error("Runtime error: {0}")]
+    Runtime(#[from] RuntimeError),
 }
 
-// When main() returns a `RuntimeError`, it will be printed using the `Display` implementation
-impl Debug for RuntimeError {
+// When main() returns a `Error`, it will be printed using the `Display` implementation
+impl Debug for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self)
     }
 }
 
 #[tokio::main]
-async fn main() -> Result<(), RuntimeError> {
+async fn main() -> Result<(), Error> {
     setup_logger()?;
 
     let env_config: EnvConfig = EnvHandler::new(APP_NAME).load_config()?;
@@ -67,8 +70,7 @@ async fn main() -> Result<(), RuntimeError> {
     let config = merge(config, file_config);
     let config = merge(config, env_config);
 
-    run(config).await;
-
+    run(config).await?;
     Ok(())
 }
 
