@@ -1,6 +1,12 @@
-use dnrs::setup_logger;
-use lum_log::{error, info};
-use reqwest::header::{self, HeaderMap, HeaderValue};
+use std::fmt::{self, Debug};
+
+use dnrs::{Config, EnvConfig, FileConfig, run, setup_logger};
+use lum_config::{
+    ConfigPathError, EnvHandler, EnvironmentConfigParseError, FileConfigParseError, FileHandler,
+    merge,
+};
+use lum_log::{error, log::SetLoggerError};
+use thiserror::Error;
 
 /*
     - Adapters for different DNS providers
@@ -26,16 +32,48 @@ use reqwest::header::{self, HeaderMap, HeaderValue};
       - CLI options can override config file options
 */
 
-#[tokio::main]
-async fn main() -> Result<(), u8> {
-    info!("Info without logger");
-    if let Err(e) = setup_logger() {
-        error!("Failed to setup logger: {}", e);
-        return Err(1);
-    }
-    info!("Info with logger");
+const APP_NAME: &str = "dnrs";
 
-    let reqwest = reqwest::Client::new();
+#[derive(Error)]
+enum RuntimeError {
+    #[error("Failed to setup logger: {0}")]
+    SetLogger(#[from] SetLoggerError),
+
+    #[error("Failed to parse environment config: {0}")]
+    EnvConfig(#[from] EnvironmentConfigParseError),
+
+    #[error("Failed to load file config: {0}")]
+    FileConfig(#[from] FileConfigParseError),
+
+    #[error("Failed to load file config: {0}")]
+    FileHandler(#[from] ConfigPathError),
+}
+
+// When main() returns a `RuntimeError`, it will be printed using the `Display` implementation
+impl Debug for RuntimeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self)
+    }
+}
+
+#[tokio::main]
+async fn main() -> Result<(), RuntimeError> {
+    setup_logger()?;
+
+    let env_config: EnvConfig = EnvHandler::new(APP_NAME).load_config()?;
+    let file_config: FileConfig = FileHandler::new(APP_NAME, None, None)?.load_config()?;
+
+    let config = Config::default();
+    let config = merge(config, file_config);
+    let config = merge(config, env_config);
+
+    run(config).await;
+
+    Ok(())
+}
+
+/*
+let reqwest = reqwest::Client::new();
 
     let auth = format!("Bearer {}", dnrs::TOKEN);
 
@@ -67,4 +105,4 @@ async fn main() -> Result<(), u8> {
 
     info!("Result: {}", text);
     Ok(())
-}
+     */

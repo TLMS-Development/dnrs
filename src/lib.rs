@@ -1,33 +1,12 @@
-use std::{collections::HashMap, io};
+pub mod config;
+pub mod logger;
 
-use lum_log::{
-    Builder, Config, defaults,
-    log::{LevelFilter, SetLoggerError},
-};
+pub use config::{Config, EnvConfig, FileConfig, IpResolver, IpResolverType};
+pub use logger::setup_logger;
+use lum_log::info;
 
 pub const TOKEN: &str = "nope";
 
-pub fn setup_logger() -> Result<(), SetLoggerError> {
-    let mut colors = HashMap::new();
-    colors.insert(LevelFilter::Info, "Green".into());
-    colors.insert(LevelFilter::Error, "Red".into());
-    colors.insert(LevelFilter::Warn, "Yellow".into());
-    colors.insert(LevelFilter::Debug, "Purple".into());
-    colors.insert(LevelFilter::Trace, "Blue".into());
-
-    let min_log_level = LevelFilter::Info;
-
-    let config = Config {
-        colors,
-        min_log_level,
-    };
-
-    let module_levels = [];
-
-    Builder::new(defaults::format())
-        .config(&config)
-        .chain(io::stdout())
-        .is_debug_build(true)
-        .module_levels(&module_levels)
-        .apply()
+pub async fn run(config: Config) {
+    info!("Running with config: {:#?}", config);
 }
