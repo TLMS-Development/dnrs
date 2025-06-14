@@ -13,11 +13,9 @@ pub fn setup_logger() -> Result<(), SetLoggerError> {
     colors.insert(LevelFilter::Debug, "Purple".into());
     colors.insert(LevelFilter::Trace, "Blue".into());
 
-    let min_log_level = LevelFilter::Info;
-
     let config = Config {
         colors,
-        min_log_level,
+        min_log_level: LevelFilter::Info,
     };
 
     let module_levels = [];
@@ -25,7 +23,7 @@ pub fn setup_logger() -> Result<(), SetLoggerError> {
     Builder::new(defaults::format())
         .config(&config)
         .chain(io::stdout())
-        .is_debug_build(true)
+        .is_debug_build(cfg!(debug_assertions))
         .module_levels(&module_levels)
         .apply()
 }

@@ -10,12 +10,12 @@ use thiserror::Error;
 use crate::{Config, IpResolver};
 
 #[derive(Debug)]
-pub struct Ipv4ResolverConfig<'a> {
-    pub ipv4_resolver: &'a IpResolver,
+pub struct Ipv4ResolverConfig<'resolver> {
+    pub ipv4_resolver: &'resolver IpResolver,
 }
 
-impl<'a> From<&'a Config> for Ipv4ResolverConfig<'a> {
-    fn from(config: &'a Config) -> Self {
+impl<'config> From<&'config Config> for Ipv4ResolverConfig<'config> {
+    fn from(config: &'config Config) -> Self {
         Self {
             ipv4_resolver: &config.ipv4_resolver,
         }
@@ -23,12 +23,12 @@ impl<'a> From<&'a Config> for Ipv4ResolverConfig<'a> {
 }
 
 #[derive(Debug)]
-pub struct Ipv6ResolverConfig<'a> {
-    pub ipv6_resolver: &'a IpResolver,
+pub struct Ipv6ResolverConfig<'resolver> {
+    pub ipv6_resolver: &'resolver IpResolver,
 }
 
-impl<'a> From<&'a Config> for Ipv6ResolverConfig<'a> {
-    fn from(config: &'a Config) -> Self {
+impl<'config> From<&'config Config> for Ipv6ResolverConfig<'config> {
+    fn from(config: &'config Config) -> Self {
         Self {
             ipv6_resolver: &config.ipv6_resolver,
         }
@@ -88,8 +88,8 @@ pub enum IpResolverError {
     #[error("Invalid IP address format: {0}")]
     InvalidIpFormat(#[from] AddrParseError),
 }
-pub async fn resolve_ipv4<'a>(
-    config: &Ipv4ResolverConfig<'a>,
+pub async fn resolve_ipv4<'resolver>(
+    config: &Ipv4ResolverConfig<'resolver>,
     reqwest: &reqwest::Client,
 ) -> Result<Ipv4Addr, IpResolverError> {
     debug!(
@@ -109,8 +109,8 @@ pub async fn resolve_ipv4<'a>(
     Ok(ipv4_addr)
 }
 
-pub async fn resolve_ipv6<'a>(
-    config: &Ipv6ResolverConfig<'a>,
+pub async fn resolve_ipv6<'resolver>(
+    config: &Ipv6ResolverConfig<'resolver>,
     reqwest: &reqwest::Client,
 ) -> Result<Ipv6Addr, IpResolverError> {
     debug!(
