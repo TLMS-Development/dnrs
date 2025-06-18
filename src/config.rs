@@ -42,11 +42,11 @@ impl Default for FileConfig {
     fn default() -> Self {
         FileConfig {
             ipv4_resolver: IpResolver {
-                url: "https://v4.ident.me".to_string(),
+                url: "https://ip.cancom.io".to_string(),
                 type_: IpResolverType::Raw,
             },
             ipv6_resolver: IpResolver {
-                url: "https://v6.ident.me".to_string(),
+                url: "https://ip6.cancom.io".to_string(),
                 type_: IpResolverType::Raw,
             },
         }
