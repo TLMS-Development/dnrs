@@ -1,3 +1,4 @@
+pub mod auto;
 pub mod command;
 
 use std::future::Future;
