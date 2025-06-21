@@ -1,20 +1,19 @@
+use clap::Parser;
+use lum_log::debug;
+use std::time::Instant;
+use thiserror::Error;
+
+use crate::cli::{Command, ExecutableCommand, command::Input};
+
 pub mod cli;
 pub mod config;
 pub mod logger;
 pub mod resolver;
 
-use std::time::Instant;
-
-use clap::Parser;
-pub use config::{Config, EnvConfig, FileConfig, IpResolver, IpResolverType};
+pub use config::{Config, EnvConfig, FileConfig};
 pub use logger::setup_logger;
-use lum_log::debug;
-use thiserror::Error;
-
-use crate::cli::{Command, ExecutableCommand, command::Input};
 
 pub const TOKEN: &str = "nope";
-
 pub const PROGRAM_NAME: &str = env!("CARGO_PKG_NAME");
 pub const PROGRAM_VERSION: &str = env!("CARGO_PKG_VERSION");
 

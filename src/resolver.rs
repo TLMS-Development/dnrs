@@ -7,7 +7,10 @@ use lum_libs::serde_json;
 use lum_log::debug;
 use thiserror::Error;
 
-use crate::{Config, IpResolver};
+use crate::{
+    Config,
+    config::resolver::{IpResolver, IpResolverType},
+};
 
 #[derive(Debug)]
 pub struct Ipv4ResolverConfig<'resolver> {
@@ -17,7 +20,7 @@ pub struct Ipv4ResolverConfig<'resolver> {
 impl<'config> From<&'config Config> for Ipv4ResolverConfig<'config> {
     fn from(config: &'config Config) -> Self {
         Self {
-            ipv4_resolver: &config.ipv4_resolver,
+            ipv4_resolver: &config.resolver.ipv4,
         }
     }
 }
@@ -30,7 +33,7 @@ pub struct Ipv6ResolverConfig<'resolver> {
 impl<'config> From<&'config Config> for Ipv6ResolverConfig<'config> {
     fn from(config: &'config Config) -> Self {
         Self {
-            ipv6_resolver: &config.ipv6_resolver,
+            ipv6_resolver: &config.resolver.ipv6,
         }
     }
 }
@@ -101,8 +104,8 @@ pub async fn resolve_ipv4<'resolver>(
     let body = response.text().await?.trim().to_string();
 
     let ip = match &config.ipv4_resolver.type_ {
-        crate::IpResolverType::Raw => body,
-        crate::IpResolverType::JSON(path) => parse_json_response(&body, path)?,
+        IpResolverType::Raw => body,
+        IpResolverType::JSON(path) => parse_json_response(&body, path)?,
     };
 
     let ipv4_addr = Ipv4Addr::from_str(&ip)?;
@@ -122,8 +125,8 @@ pub async fn resolve_ipv6<'resolver>(
     let body = response.text().await?.trim().to_string();
 
     let ip = match &config.ipv6_resolver.type_ {
-        crate::IpResolverType::Raw => body,
-        crate::IpResolverType::JSON(path) => parse_json_response(&body, path)?,
+        IpResolverType::Raw => body,
+        IpResolverType::JSON(path) => parse_json_response(&body, path)?,
     };
 
     let ipv6_addr = Ipv6Addr::from_str(&ip)?;

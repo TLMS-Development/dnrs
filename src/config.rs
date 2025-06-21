@@ -1,64 +1,37 @@
 use lum_config::MergeFrom;
 use lum_libs::serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(crate = "lum_libs::serde")]
-pub enum IpResolverType {
-    Raw,
-    JSON(String),
-}
+use crate::config::resolver::IpResolverType;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(crate = "lum_libs::serde")]
-pub struct IpResolver {
-    pub url: String,
+pub mod resolver;
 
-    #[serde(rename = "type")]
-    pub type_: IpResolverType,
-}
-
+//TODO: Put command-related options into their own struct as soon as serde-env supports flatten
+// See: https://github.com/Xuanwo/serde-env/issues/15
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 #[serde(crate = "lum_libs::serde")]
 #[serde(default)]
 pub struct EnvConfig {
     pub ipv4_resolver_url: Option<String>,
     pub ipv4_resolver_type: Option<IpResolverType>,
-    pub ipv4_resolver_type_path: String,
+    pub ipv4_resolver_json_path: Option<String>,
 
     pub ipv6_resolver_url: Option<String>,
     pub ipv6_resolver_type: Option<IpResolverType>,
-    pub ipv6_resolver_type_path: String,
+    pub ipv6_resolver_json_path: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(crate = "lum_libs::serde")]
 #[serde(default)]
 pub struct FileConfig {
-    pub ipv4_resolver: IpResolver,
-    pub ipv6_resolver: IpResolver,
-}
-
-impl Default for FileConfig {
-    fn default() -> Self {
-        FileConfig {
-            ipv4_resolver: IpResolver {
-                url: "https://ip.cancom.io".to_string(),
-                type_: IpResolverType::Raw,
-            },
-            ipv6_resolver: IpResolver {
-                url: "https://ipv6.cancom.io".to_string(),
-                type_: IpResolverType::Raw,
-            },
-        }
-    }
+    resolver: resolver::FileConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "lum_libs::serde")]
 #[serde(default)]
 pub struct Config {
-    pub ipv4_resolver: IpResolver,
-    pub ipv6_resolver: IpResolver,
+    pub resolver: resolver::FileConfig,
 }
 
 impl Default for Config {
@@ -66,8 +39,7 @@ impl Default for Config {
         let file_config = FileConfig::default();
 
         Config {
-            ipv4_resolver: file_config.ipv4_resolver,
-            ipv6_resolver: file_config.ipv6_resolver,
+            resolver: file_config.resolver,
         }
     }
 }
@@ -75,22 +47,26 @@ impl Default for Config {
 impl MergeFrom<EnvConfig> for Config {
     fn merge_from(mut self, other: EnvConfig) -> Self {
         if let Some(url) = other.ipv4_resolver_url {
-            self.ipv4_resolver.url = url;
+            self.resolver.ipv4.url = url;
         }
         if let Some(resolver_type) = other.ipv4_resolver_type {
-            self.ipv4_resolver.type_ = match resolver_type {
+            self.resolver.ipv4.type_ = match resolver_type {
                 IpResolverType::Raw => IpResolverType::Raw,
-                IpResolverType::JSON(_) => IpResolverType::JSON(other.ipv4_resolver_type_path),
+                IpResolverType::JSON(_) => {
+                    IpResolverType::JSON(other.ipv4_resolver_json_path.unwrap())
+                } // TODO: Handle unwrap
             };
         }
 
         if let Some(url) = other.ipv6_resolver_url {
-            self.ipv6_resolver.url = url;
+            self.resolver.ipv6.url = url;
         }
         if let Some(resolver_type) = other.ipv6_resolver_type {
-            self.ipv6_resolver.type_ = match resolver_type {
+            self.resolver.ipv6.type_ = match resolver_type {
                 IpResolverType::Raw => IpResolverType::Raw,
-                IpResolverType::JSON(_) => IpResolverType::JSON(other.ipv6_resolver_type_path),
+                IpResolverType::JSON(_) => {
+                    IpResolverType::JSON(other.ipv6_resolver_json_path.unwrap())
+                } // TODO: Handle unwrap
             };
         }
 
@@ -101,8 +77,7 @@ impl MergeFrom<EnvConfig> for Config {
 impl MergeFrom<FileConfig> for Config {
     fn merge_from(self, other: FileConfig) -> Self {
         Self {
-            ipv4_resolver: other.ipv4_resolver,
-            ipv6_resolver: other.ipv6_resolver,
+            resolver: other.resolver,
         }
     }
 }
