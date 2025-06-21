@@ -46,7 +46,7 @@ impl Default for FileConfig {
                 type_: IpResolverType::Raw,
             },
             ipv6_resolver: IpResolver {
-                url: "https://ip6.cancom.io".to_string(),
+                url: "https://ipv6.cancom.io".to_string(),
                 type_: IpResolverType::Raw,
             },
         }

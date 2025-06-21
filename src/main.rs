@@ -24,7 +24,7 @@ use thiserror::Error;
       - check (connection, provider status, etc. Basically make sure provider is ready to use)
       - set(domain: &str, record_type: &str, value: &str)
     - Get current IP address
-      - Use a service like `ip.cancom.io` and `ip6.cancom.io`
+      - Use a service like `ip.cancom.io` and `ipv6.cancom.io`
       - Raw or JSON with custom path
     - User interface
       - CLI + config file
