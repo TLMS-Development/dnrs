@@ -8,7 +8,9 @@ use crate::cli::{Command, ExecutableCommand, command::Input};
 pub mod cli;
 pub mod config;
 pub mod logger;
+pub mod provider;
 pub mod resolver;
+pub mod types;
 
 pub use config::{Config, EnvConfig, FileConfig};
 pub use logger::setup_logger;
