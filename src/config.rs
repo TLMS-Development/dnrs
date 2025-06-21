@@ -3,6 +3,7 @@ use lum_libs::serde::{Deserialize, Serialize};
 
 use crate::config::resolver::IpResolverType;
 
+pub mod provider;
 pub mod resolver;
 
 //TODO: Put command-related options into their own struct as soon as serde-env supports flatten
@@ -25,13 +26,18 @@ pub struct EnvConfig {
 #[serde(default)]
 pub struct FileConfig {
     resolver: resolver::FileConfig,
+    providers: provider::FileConfig,
 }
 
+//TODO: use serde(flatten) when it works with default values
+// See: https://github.com/serde-rs/serde/issues/1626
+// See: https://github.com/serde-rs/serde/pull/2687
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "lum_libs::serde")]
 #[serde(default)]
 pub struct Config {
     pub resolver: resolver::FileConfig,
+    pub providers: provider::FileConfig,
 }
 
 impl Default for Config {
@@ -40,6 +46,7 @@ impl Default for Config {
 
         Config {
             resolver: file_config.resolver,
+            providers: file_config.providers,
         }
     }
 }
@@ -78,6 +85,7 @@ impl MergeFrom<FileConfig> for Config {
     fn merge_from(self, other: FileConfig) -> Self {
         Self {
             resolver: other.resolver,
+            providers: other.providers,
         }
     }
 }
