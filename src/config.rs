@@ -1,5 +1,6 @@
 use lum_config::MergeFrom;
 use lum_libs::serde::{Deserialize, Serialize};
+use serde_aux::field_attributes::deserialize_default_from_empty_object;
 
 use crate::config::resolver::IpResolverType;
 
@@ -26,10 +27,12 @@ pub struct EnvConfig {
 #[serde(default)]
 pub struct FileConfig {
     resolver: resolver::FileConfig,
+
+    #[serde(flatten, deserialize_with = "deserialize_default_from_empty_object")]
     providers: provider::FileConfig,
 }
 
-//TODO: use serde(flatten) when it works with default values
+//TODO: remove serde_aux dependency once serde supports this natively
 // See: https://github.com/serde-rs/serde/issues/1626
 // See: https://github.com/serde-rs/serde/pull/2687
 #[derive(Debug, Clone, Serialize, Deserialize)]
