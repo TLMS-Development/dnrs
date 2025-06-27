@@ -1,5 +1,6 @@
 pub mod auto;
 pub mod command;
+pub mod get;
 
 use std::future::Future;
 

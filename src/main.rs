@@ -33,6 +33,8 @@ use thiserror::Error;
       - CLI + config file
       - CLI and config file result in same options struct
       - CLI options can override config file options
+    - Add command: Always accept multiple domains, use batch if provider supports it
+    - Models (Responses, Errors)
 */
 
 const APP_NAME: &str = "dnrs";

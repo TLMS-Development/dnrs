@@ -22,15 +22,38 @@ pub trait Provider {
     type DeleteRecordOutput;
 
     fn get_provider_name() -> &'static str;
-
     fn get_supported_features() -> Vec<Feature>;
     fn is_feature_supported(feature: &Feature) -> bool {
         Self::get_supported_features().contains(feature)
     }
 
-    fn get_record(&self, input: &Self::GetRecordInput) -> &Self::GetRecordOutput;
-    fn get_records(&self, input: &Self::GetRecordsInput) -> &Self::GetRecordsOutput;
-    fn add_record(&self, input: &Self::AddRecordInput) -> &Self::AddRecordOutput;
-    fn update_record(&self, input: &Self::UpdateRecordInput) -> &Self::UpdateRecordOutput;
-    fn delete_record(&self, input: &Self::DeleteRecordInput) -> &Self::DeleteRecordOutput;
+    async fn get_record(
+        &self,
+        reqwest: reqwest::Client,
+        input: &Self::GetRecordInput,
+    ) -> Self::GetRecordOutput;
+
+    async fn get_records(
+        &self,
+        reqwest: reqwest::Client,
+        input: &Self::GetRecordsInput,
+    ) -> Self::GetRecordsOutput;
+
+    async fn add_record(
+        &self,
+        reqwest: reqwest::Client,
+        input: &Self::AddRecordInput,
+    ) -> Self::AddRecordOutput;
+
+    async fn update_record(
+        &self,
+        reqwest: reqwest::Client,
+        input: &Self::UpdateRecordInput,
+    ) -> Self::UpdateRecordOutput;
+
+    async fn delete_record(
+        &self,
+        reqwest: reqwest::Client,
+        input: &Self::DeleteRecordInput,
+    ) -> Self::DeleteRecordOutput;
 }

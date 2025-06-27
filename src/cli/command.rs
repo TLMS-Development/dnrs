@@ -6,13 +6,14 @@ use thiserror::Error;
 
 use crate::{
     Config,
-    cli::{ExecutableCommand, auto},
+    cli::{ExecutableCommand, auto, get},
 };
 
 #[derive(Debug, ClapSubcommand)]
 #[command(version, about, long_about = None, propagate_version = true)]
 pub enum Subcommand<'a> {
     Auto(auto::Command<'a>),
+    Get(get::Command<'a>),
 }
 
 #[derive(Debug)]
@@ -24,6 +25,9 @@ pub struct Input<'config> {
 pub enum Error {
     #[error("Failed to execute auto subcommand: {0}")]
     Auto(#[from] auto::Error),
+
+    #[error("Failed to execute get subcommand: {0}")]
+    Get(#[from] get::Error),
 }
 
 /// dnrs
@@ -53,6 +57,10 @@ impl<'command> ExecutableCommand<'command> for Command<'command> {
         match &self.subcommand {
             Subcommand::Auto(subcommand) => {
                 let input = auto::Input { config, reqwest };
+                subcommand.execute(&input).await?;
+            }
+            Subcommand::Get(subcommand) => {
+                let input = get::Input { config, reqwest };
                 subcommand.execute(&input).await?;
             }
         }
