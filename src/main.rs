@@ -13,6 +13,9 @@ use thiserror::Error;
       - Nitrado
       - Netcup
       - Custom (see below)
+      - Implement Nitrado provider
+    - Config
+      - Startup check if invalid/double provider/auto names in config
     - Custom DNS provider
       - Allow user to define their own request
         - HTTP method
