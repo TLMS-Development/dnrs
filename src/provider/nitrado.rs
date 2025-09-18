@@ -36,47 +36,47 @@ impl Default for ProviderConfig {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "lum_libs::serde")]
-pub struct Record {
+pub struct RecordConfig {
     pub record: dns::Record,
     pub ttl: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "lum_libs::serde")]
-pub struct Domain {
+pub struct DomainConfig {
     pub domain: String,
-    pub records: Vec<Record>,
+    pub records: Vec<RecordConfig>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "lum_libs::serde")]
 pub struct DnsConfig {
     pub provider_name: String,
-    pub domains: Vec<Domain>,
+    pub domains: Vec<DomainConfig>,
 }
 
 impl Default for DnsConfig {
     fn default() -> Self {
         DnsConfig {
             provider_name: "Nitrado1".to_string(),
-            domains: vec![Domain {
+            domains: vec![DomainConfig {
                 domain: "example.com".to_string(),
                 records: vec![
-                    Record {
+                    RecordConfig {
                         record: dns::Record {
                             name: "ipv4".to_string(),
                             value: RecordValue::A(Ipv4Addr::from_str("127.0.0.1").unwrap()),
                         },
                         ttl: Some(3600),
                     },
-                    Record {
+                    RecordConfig {
                         record: dns::Record {
                             name: "ipv6".to_string(),
                             value: RecordValue::AAAA(Ipv6Addr::from_str("::1").unwrap()),
                         },
                         ttl: Some(3600),
                     },
-                    Record {
+                    RecordConfig {
                         record: dns::Record {
                             name: "forward".to_string(),
                             value: RecordValue::CNAME("example.com".to_string()),
@@ -89,15 +89,20 @@ impl Default for DnsConfig {
     }
 }
 
-pub struct NitradoProvider<'provider_config> {
+pub struct NitradoProvider<'provider_config, 'dns_config> {
     pub provider_config: &'provider_config ProviderConfig,
+    pub dns_config: &'dns_config DnsConfig,
 }
 
-impl<'provider_config> NitradoProvider<'provider_config> {
+impl<'provider_config, 'dns_config> NitradoProvider<'provider_config, 'dns_config> {
     pub fn new(
         provider_config: &'provider_config ProviderConfig,
-    ) -> NitradoProvider<'provider_config> {
-        NitradoProvider { provider_config }
+        dns_config: &'dns_config DnsConfig,
+    ) -> NitradoProvider<'provider_config, 'dns_config> {
+        NitradoProvider {
+            provider_config,
+            dns_config,
+        }
     }
 }
 
@@ -121,7 +126,7 @@ pub struct UpdateRecordInput {}
 pub struct DeleteRecordInput {}
 
 #[async_trait]
-impl Provider for NitradoProvider<'_> {
+impl Provider for NitradoProvider<'_, '_> {
     type GetRecordInput = GetRecordInput;
     type GetRecordOutput = serde_json::Value;
     type GetRecordsInput = GetRecordsInput;

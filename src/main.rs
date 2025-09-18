@@ -1,9 +1,8 @@
 use std::fmt::{self, Debug};
 
-use dnrs::{Config, EnvConfig, FileConfig, RuntimeError, run, setup_logger};
+use dnrs::{Config, FileConfig, RuntimeError, run, setup_logger};
 use lum_config::{
-    ConfigPathError, EnvHandler, EnvironmentConfigParseError, FileConfigParseError, FileHandler,
-    merge,
+    ConfigPathError, EnvironmentConfigParseError, FileConfigParseError, FileHandler, merge,
 };
 use lum_log::{error, log::SetLoggerError};
 use thiserror::Error;
@@ -68,12 +67,10 @@ impl Debug for Error {
 async fn main() -> Result<(), Error> {
     setup_logger()?;
 
-    let env_config: EnvConfig = EnvHandler::new(APP_NAME).load_config()?;
     let file_config: FileConfig = FileHandler::new(APP_NAME, None, None)?.load_config()?;
 
     let config = Config::default();
     let config = merge(config, file_config);
-    let config = merge(config, env_config);
 
     run(config).await?;
     Ok(())

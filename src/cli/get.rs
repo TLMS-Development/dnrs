@@ -3,9 +3,7 @@ use std::marker::PhantomData;
 use clap::{Args, Parser};
 use thiserror::Error;
 
-use crate::{
-    Config, cli::ExecutableCommand, config::provider::Provider, provider::nitrado::NitradoProvider,
-};
+use crate::{Config, cli::ExecutableCommand};
 
 #[derive(Debug)]
 pub struct Input<'config> {

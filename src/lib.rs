@@ -12,7 +12,7 @@ pub mod provider;
 pub mod resolver;
 pub mod types;
 
-pub use config::{Config, EnvConfig, FileConfig};
+pub use config::{Config, FileConfig};
 pub use logger::setup_logger;
 
 pub const TOKEN: &str = "nope";
