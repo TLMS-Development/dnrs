@@ -1,25 +1,24 @@
 use lum_libs::serde::{Deserialize, Serialize};
 
-use crate::provider::nitrado::{self, ProviderConfig as NitradoProviderConfig};
+use crate::provider::nitrado;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "lum_libs::serde")]
-pub enum ProviderType {
-    NitradoConfig(NitradoProviderConfig),
+pub enum Provider {
+    Nitrado(nitrado::ProviderConfig),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "lum_libs::serde")]
 pub struct FileConfig {
-    pub providers: Vec<ProviderType>,
+    #[serde(flatten)]
+    pub provider: Provider,
 }
 
 impl Default for FileConfig {
     fn default() -> Self {
         FileConfig {
-            providers: vec![ProviderType::NitradoConfig(
-                nitrado::ProviderConfig::default(),
-            )],
+            provider: Provider::Nitrado(nitrado::ProviderConfig::default()),
         }
     }
 }

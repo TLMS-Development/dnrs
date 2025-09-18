@@ -1,23 +1,24 @@
 use lum_libs::serde::{Deserialize, Serialize};
 
-use crate::provider::nitrado::AutoConfig as NitradoAutoConfig;
+use crate::provider::nitrado;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "lum_libs::serde")]
-pub enum ProviderType {
-    NitradoConfig(NitradoAutoConfig),
+pub enum Type {
+    Nitrado(nitrado::DnsConfig),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "lum_libs::serde")]
 pub struct FileConfig {
-    pub domains: Vec<ProviderType>,
+    #[serde(flatten)]
+    pub dns: Type,
 }
 
 impl Default for FileConfig {
     fn default() -> Self {
         FileConfig {
-            domains: vec![ProviderType::NitradoConfig(NitradoAutoConfig::default())],
+            dns: Type::Nitrado(nitrado::DnsConfig::default()),
         }
     }
 }

@@ -14,12 +14,12 @@ opt-level = 0
 lto = false
 
 [dependencies]
+async-trait = "0.1.89"
 clap = { version = "4.5.39", features = ["derive", "unicode", "wrap_help"] }
 dirs = "6.0.0"
 lum_config = "0.2.3"
 lum_libs = { version = "0.2.4", features = ["serde"] }
 lum_log = "0.2.5"
 reqwest = "0.12.19"
-serde-aux = "4.7.0"
 thiserror = "2.0.12"
 tokio = { version = "1.45.1", features = ["full"] }

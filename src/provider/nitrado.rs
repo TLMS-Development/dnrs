@@ -3,6 +3,7 @@ use std::{
     str::FromStr,
 };
 
+use async_trait::async_trait;
 use lum_libs::{
     serde::{Deserialize, Serialize},
     serde_json,
@@ -26,7 +27,7 @@ pub struct ProviderConfig {
 impl Default for ProviderConfig {
     fn default() -> Self {
         ProviderConfig {
-            name: "Nitrado".to_string(),
+            name: "Nitrado1".to_string(),
             api_key: "your_api_key".to_string(),
             api_base_url: "https://api.nitrado.net".to_string(),
         }
@@ -49,15 +50,15 @@ pub struct Domain {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "lum_libs::serde")]
-pub struct AutoConfig {
-    pub name: String,
+pub struct DnsConfig {
+    pub provider_name: String,
     pub domains: Vec<Domain>,
 }
 
-impl Default for AutoConfig {
+impl Default for DnsConfig {
     fn default() -> Self {
-        AutoConfig {
-            name: "Nitrado".to_string(),
+        DnsConfig {
+            provider_name: "Nitrado1".to_string(),
             domains: vec![Domain {
                 domain: "example.com".to_string(),
                 records: vec![
@@ -88,20 +89,15 @@ impl Default for AutoConfig {
     }
 }
 
-pub struct NitradoProvider<'provider_config, 'auto_config> {
+pub struct NitradoProvider<'provider_config> {
     pub provider_config: &'provider_config ProviderConfig,
-    pub auto_config: &'auto_config AutoConfig,
 }
 
-impl<'provider_config, 'auto_config> NitradoProvider<'provider_config, 'auto_config> {
+impl<'provider_config> NitradoProvider<'provider_config> {
     pub fn new(
         provider_config: &'provider_config ProviderConfig,
-        auto_config: &'auto_config AutoConfig,
-    ) -> NitradoProvider<'provider_config, 'auto_config> {
-        NitradoProvider {
-            provider_config,
-            auto_config,
-        }
+    ) -> NitradoProvider<'provider_config> {
+        NitradoProvider { provider_config }
     }
 }
 
@@ -124,7 +120,8 @@ pub struct AddRecordInput {}
 pub struct UpdateRecordInput {}
 pub struct DeleteRecordInput {}
 
-impl Provider for NitradoProvider<'_, '_> {
+#[async_trait]
+impl Provider for NitradoProvider<'_> {
     type GetRecordInput = GetRecordInput;
     type GetRecordOutput = serde_json::Value;
     type GetRecordsInput = GetRecordsInput;
@@ -135,6 +132,7 @@ impl Provider for NitradoProvider<'_, '_> {
     type UpdateRecordOutput = serde_json::Value;
     type DeleteRecordInput = DeleteRecordInput;
     type DeleteRecordOutput = serde_json::Value;
+    //TODO: type ProviderConfig?
 
     fn get_provider_name() -> &'static str {
         "Nitrado"

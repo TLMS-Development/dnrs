@@ -1,10 +1,9 @@
 use lum_config::MergeFrom;
 use lum_libs::serde::{Deserialize, Serialize};
-use serde_aux::field_attributes::deserialize_default_from_empty_object;
 
 use crate::config::resolver::IpResolverType;
 
-pub mod auto;
+pub mod dns;
 pub mod provider;
 pub mod resolver;
 
@@ -23,20 +22,23 @@ pub struct EnvConfig {
     pub ipv6_resolver_json_path: Option<String>,
 }
 
-//TODO: remove serde_aux dependency once serde supports this natively
-// See: https://github.com/serde-rs/serde/issues/1626
-// See: https://github.com/serde-rs/serde/pull/2687
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "lum_libs::serde")]
 #[serde(default)]
 pub struct FileConfig {
     resolver: resolver::FileConfig,
+    providers: Vec<provider::FileConfig>,
+    dns: Vec<dns::FileConfig>,
+}
 
-    #[serde(flatten, deserialize_with = "deserialize_default_from_empty_object")]
-    providers: provider::FileConfig,
-
-    #[serde(flatten, deserialize_with = "deserialize_default_from_empty_object")]
-    auto: auto::FileConfig,
+impl Default for FileConfig {
+    fn default() -> Self {
+        FileConfig {
+            resolver: resolver::FileConfig::default(),
+            providers: vec![provider::FileConfig::default()],
+            dns: vec![dns::FileConfig::default()],
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -44,8 +46,8 @@ pub struct FileConfig {
 #[serde(default)]
 pub struct Config {
     pub resolver: resolver::FileConfig,
-    pub providers: provider::FileConfig,
-    pub auto: auto::FileConfig,
+    pub providers: Vec<provider::FileConfig>,
+    pub dns: Vec<dns::FileConfig>,
 }
 
 impl Default for Config {
@@ -55,7 +57,7 @@ impl Default for Config {
         Config {
             resolver: file_config.resolver,
             providers: file_config.providers,
-            auto: file_config.auto,
+            dns: file_config.dns,
         }
     }
 }
@@ -95,7 +97,7 @@ impl MergeFrom<FileConfig> for Config {
         Self {
             resolver: other.resolver,
             providers: other.providers,
-            auto: other.auto,
+            dns: other.dns,
         }
     }
 }

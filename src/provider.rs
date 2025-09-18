@@ -1,3 +1,5 @@
+use async_trait::async_trait;
+
 pub mod nitrado;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -9,6 +11,7 @@ pub enum Feature {
     DeleteRecord,
 }
 
+#[async_trait]
 pub trait Provider {
     type GetRecordInput;
     type GetRecordOutput;

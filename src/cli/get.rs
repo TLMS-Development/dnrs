@@ -4,8 +4,7 @@ use clap::{Args, Parser};
 use thiserror::Error;
 
 use crate::{
-    Config, cli::ExecutableCommand, config::provider::ProviderType,
-    provider::nitrado::NitradoProvider,
+    Config, cli::ExecutableCommand, config::provider::Provider, provider::nitrado::NitradoProvider,
 };
 
 #[derive(Debug)]
@@ -52,23 +51,6 @@ impl<'command> ExecutableCommand<'command> for Command<'command> {
     async fn execute(&self, input: &'command Self::I) -> Self::R {
         let config = input.config;
         let reqwest = reqwest::Client::new();
-
-        let provider_config = config.providers.providers.iter().find(|p| match p {
-            ProviderType::NitradoConfig(nitrado_config) => nitrado_config.name == self.provider,
-        });
-
-        if provider_config.is_none() {
-            return Err(Error::ProviderNotConfigured(self.provider.clone()));
-        }
-
-        let provider_config = provider_config.unwrap();
-        let auto_config = input.config.auto;
-        match provider_config {
-            ProviderType::NitradoConfig(nitrado_config) => {
-                let nitrado_provider = NitradoProvider::new(provider_config, auto_config);
-            }
-            _ => unreachable!("Unexpected provider type"),
-        }
 
         Ok(())
     }
