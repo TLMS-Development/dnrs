@@ -12,6 +12,7 @@ use reqwest::header::HeaderMap;
 use thiserror::Error;
 
 use crate::{
+    config::dns::{Record, ResolveType},
     provider::{Feature, Provider},
     types::dns::{self, RecordValue},
 };
@@ -36,10 +37,20 @@ impl Default for ProviderConfig {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "lum_libs::serde")]
-pub struct RecordConfig {
+pub struct ManualRecordConfig {
     pub record: dns::Record,
     pub ttl: Option<u32>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(crate = "lum_libs::serde")]
+pub struct AutomaticRecordConfig {
+    pub name: String,
+    pub ttl: Option<u32>,
+    pub resolve_type: ResolveType,
+}
+
+pub type RecordConfig = Record<ManualRecordConfig, AutomaticRecordConfig>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "lum_libs::serde")]
@@ -62,27 +73,37 @@ impl Default for DnsConfig {
             domains: vec![DomainConfig {
                 domain: "example.com".to_string(),
                 records: vec![
-                    RecordConfig {
+                    RecordConfig::Manual(ManualRecordConfig {
                         record: dns::Record {
                             name: "ipv4".to_string(),
                             value: RecordValue::A(Ipv4Addr::from_str("127.0.0.1").unwrap()),
                         },
                         ttl: Some(3600),
-                    },
-                    RecordConfig {
+                    }),
+                    RecordConfig::Manual(ManualRecordConfig {
                         record: dns::Record {
                             name: "ipv6".to_string(),
                             value: RecordValue::AAAA(Ipv6Addr::from_str("::1").unwrap()),
                         },
                         ttl: Some(3600),
-                    },
-                    RecordConfig {
+                    }),
+                    RecordConfig::Manual(ManualRecordConfig {
                         record: dns::Record {
                             name: "forward".to_string(),
                             value: RecordValue::CNAME("example.com".to_string()),
                         },
                         ttl: Some(3600),
-                    },
+                    }),
+                    RecordConfig::Automatic(AutomaticRecordConfig {
+                        name: "auto-ipv4".to_string(),
+                        ttl: Some(300),
+                        resolve_type: ResolveType::IPv4,
+                    }),
+                    RecordConfig::Automatic(AutomaticRecordConfig {
+                        name: "auto-ipv6".to_string(),
+                        ttl: Some(300),
+                        resolve_type: ResolveType::IPv6,
+                    }),
                 ],
             }],
         }

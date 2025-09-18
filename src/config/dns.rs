@@ -10,6 +10,20 @@ pub enum Type {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "lum_libs::serde")]
+pub enum Record<MANUAL, AUTOMATIC> {
+    Manual(MANUAL),
+    Automatic(AUTOMATIC),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(crate = "lum_libs::serde")]
+pub enum ResolveType {
+    IPv4,
+    IPv6,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(crate = "lum_libs::serde")]
 pub struct FileConfig {
     #[serde(flatten)]
     pub dns: Type,
