@@ -15,7 +15,6 @@ pub mod types;
 pub use config::{Config, FileConfig};
 pub use logger::setup_logger;
 
-pub const TOKEN: &str = "nope";
 pub const PROGRAM_NAME: &str = env!("CARGO_PKG_NAME");
 pub const PROGRAM_VERSION: &str = env!("CARGO_PKG_VERSION");
 

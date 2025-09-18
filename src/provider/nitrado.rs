@@ -127,15 +127,6 @@ impl Provider for NitradoProvider<'_> {
             Feature::DeleteRecord,
         ]
     }
-
-    async fn get_record(
-        &self,
-        _reqwest: reqwest::Client,
-        _input: &provider::GetRecordInput,
-    ) -> Result<Record> {
-        unimplemented!()
-    }
-
     async fn get_records(
         &self,
         reqwest: reqwest::Client,
@@ -163,6 +154,10 @@ impl Provider for NitradoProvider<'_> {
         let text = response.text().await?;
         let json = serde_json::from_str(&text)?;
         Ok(json)
+    }
+
+    async fn get_all_records(&self, _reqwest: reqwest::Client) -> Result<Vec<Record>> {
+        unimplemented!()
     }
 
     async fn add_record(&self, _reqwest: reqwest::Client, _input: &Record) -> Result<()> {

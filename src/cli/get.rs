@@ -1,7 +1,6 @@
 use std::marker::PhantomData;
 
 use clap::{Args, Parser};
-use lum_log::config;
 use thiserror::Error;
 
 use crate::{
@@ -23,10 +22,11 @@ pub enum Error {
     ProviderNotConfigured(String),
 }
 
+//TODO: Fix order of usage message (provider should come first)
 #[derive(Debug, Args)]
 #[group(required = true, multiple = false)]
 pub struct DomainArgs {
-    /// Domains to get information for
+    /// Domains to get records for
     domains: Vec<String>,
 
     /// Get all records
@@ -41,7 +41,7 @@ pub struct Command<'command> {
     #[clap(skip)]
     _phantom: PhantomData<&'command ()>,
 
-    /// Name of the provider to get information from
+    /// Name of the provider to get records from
     provider: String,
 
     #[command(flatten)]
@@ -73,12 +73,12 @@ impl<'command> ExecutableCommand<'command> for Command<'command> {
         let config = input.config;
         let provider_name = self.provider.as_str();
 
-        let provider = match get_provider(provider_name, config) {
+        let _provider = match get_provider(provider_name, config) {
             Some(p) => p,
             None => return Err(Error::ProviderNotConfigured(provider_name.to_string())),
         };
 
-        let reqwest = reqwest::Client::new();
+        let _reqwest = reqwest::Client::new();
 
         Ok(())
     }

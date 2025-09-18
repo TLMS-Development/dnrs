@@ -137,7 +137,7 @@ pub async fn resolve_ipv6<'resolver>(
     Ok(ipv6_addr)
 }
 
-pub async fn resolve_to_record<'resolver>(
+pub async fn resolve_to_record(
     config: &Config,
     reqwest: &reqwest::Client,
     automatic_record_config: &AutomaticRecordConfig,
