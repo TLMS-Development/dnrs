@@ -23,6 +23,7 @@ pub enum RecordValue {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "lum_libs::serde")]
 pub struct Record {
-    pub name: String,
+    pub domain: String,
     pub value: RecordValue,
+    pub ttl: Option<u32>,
 }

@@ -9,7 +9,11 @@ use thiserror::Error;
 
 use crate::{
     Config,
-    config::resolver::{IpResolver, IpResolverType},
+    config::{
+        dns::{AutomaticRecordConfig, ResolveType},
+        resolver::{IpResolver, IpResolverType},
+    },
+    types::dns::{Record, RecordValue},
 };
 
 #[derive(Debug)]
@@ -131,4 +135,34 @@ pub async fn resolve_ipv6<'resolver>(
 
     let ipv6_addr = Ipv6Addr::from_str(&ip)?;
     Ok(ipv6_addr)
+}
+
+pub async fn resolve_to_record<'resolver>(
+    config: &Config,
+    reqwest: &reqwest::Client,
+    automatic_record_config: &AutomaticRecordConfig,
+) -> Result<Record, IpResolverError> {
+    let domain = automatic_record_config.domain.clone();
+    let ttl = automatic_record_config.ttl;
+
+    match automatic_record_config.resolve_type {
+        ResolveType::IPv4 => {
+            let ipv4_resolver_config = Ipv4ResolverConfig::from(config);
+            let ipv4 = resolve_ipv4(&ipv4_resolver_config, reqwest).await?;
+            Ok(Record {
+                domain,
+                value: RecordValue::A(ipv4),
+                ttl,
+            })
+        }
+        ResolveType::IPv6 => {
+            let ipv6_resolver_config = Ipv6ResolverConfig::from(config);
+            let ipv6 = resolve_ipv6(&ipv6_resolver_config, reqwest).await?;
+            Ok(Record {
+                domain,
+                value: RecordValue::AAAA(ipv6),
+                ttl,
+            })
+        }
+    }
 }

@@ -1,4 +1,7 @@
+use anyhow::Result;
 use async_trait::async_trait;
+
+use crate::types::dns::Record;
 
 pub mod nitrado;
 
@@ -11,52 +14,26 @@ pub enum Feature {
     DeleteRecord,
 }
 
+pub struct GetRecordInput {}
+pub struct GetRecordsInput {
+    pub domain: String,
+}
+
 #[async_trait]
 pub trait Provider {
-    type GetRecordInput;
-    type GetRecordOutput;
-    type GetRecordsInput;
-    type GetRecordsOutput;
-    type AddRecordInput;
-    type AddRecordOutput;
-    type UpdateRecordInput;
-    type UpdateRecordOutput;
-    type DeleteRecordInput;
-    type DeleteRecordOutput;
-
-    fn get_provider_name() -> &'static str;
-    fn get_supported_features() -> Vec<Feature>;
-    fn is_feature_supported(feature: &Feature) -> bool {
-        Self::get_supported_features().contains(feature)
+    fn get_provider_name(&self) -> &'static str;
+    fn get_supported_features(&self) -> Vec<Feature>;
+    fn is_feature_supported(&self, feature: &Feature) -> bool {
+        Self::get_supported_features(&self).contains(feature)
     }
 
-    async fn get_record(
-        &self,
-        reqwest: reqwest::Client,
-        input: &Self::GetRecordInput,
-    ) -> Self::GetRecordOutput;
-
+    async fn get_record(&self, reqwest: reqwest::Client, input: &GetRecordInput) -> Result<Record>;
     async fn get_records(
         &self,
         reqwest: reqwest::Client,
-        input: &Self::GetRecordsInput,
-    ) -> Self::GetRecordsOutput;
-
-    async fn add_record(
-        &self,
-        reqwest: reqwest::Client,
-        input: &Self::AddRecordInput,
-    ) -> Self::AddRecordOutput;
-
-    async fn update_record(
-        &self,
-        reqwest: reqwest::Client,
-        input: &Self::UpdateRecordInput,
-    ) -> Self::UpdateRecordOutput;
-
-    async fn delete_record(
-        &self,
-        reqwest: reqwest::Client,
-        input: &Self::DeleteRecordInput,
-    ) -> Self::DeleteRecordOutput;
+        input: &GetRecordsInput,
+    ) -> Result<Vec<Record>>;
+    async fn add_record(&self, reqwest: reqwest::Client, record: &Record) -> Result<()>;
+    async fn update_record(&self, reqwest: reqwest::Client, record: &Record) -> Result<()>;
+    async fn delete_record(&self, reqwest: reqwest::Client, record: &Record) -> Result<()>;
 }
