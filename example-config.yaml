@@ -1,0 +1,55 @@
+# Example DNRS configuration
+
+resolver:
+  ipv4:
+    url: https://ip.cancom.io
+    type: Raw
+  ipv6:
+    url: https://ipv6.cancom.io
+    type: Raw
+
+providers:
+  - Nitrado:
+      name: MyNitradoProvider
+      api_key: your-nitrado-api-key-here
+      api_base_url: https://api.nitrado.net
+
+dns:
+  - Nitrado:
+      provider_name: MyNitradoProvider
+      domains:
+        - domain: example.com
+          records:
+            # Use !Manual to define static records
+            - !Manual
+              domain: www
+              value: !A 127.0.0.1
+              ttl: 3600
+            - !Manual
+              domain: mail
+              value: !MX
+                priority: 10
+                target: mail.example.com
+              ttl: 3600
+            - !Manual
+              domain: ipv6-test
+              value: !AAAA ::1
+              ttl: 3600
+            - !Manual
+              domain: alias
+              value: !CNAME example.com
+              ttl: 300
+            - !Manual
+              domain: txt-record
+              value: !TXT "v=spf1 include:_spf.google.com ~all"
+              ttl: 300
+
+            # Use !Automatic to resolve IPs dynamically
+            - !Automatic
+              domain: dynamic-ipv4
+              ttl: 300
+              resolve_type: IPv4
+            - !Automatic
+              domain: dynamic-ipv6
+              ttl: 300
+              resolve_type: IPv6
