@@ -58,6 +58,11 @@ enum Error {
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 
+    #[error(
+        "Unable to determine config directory. No config directory, home directory, or temp directory available."
+    )]
+    NoConfigDirectory,
+
     #[error("Runtime error: {0}")]
     Runtime(#[from] RuntimeError),
 }
@@ -74,7 +79,9 @@ async fn main() -> Result<(), Error> {
     setup_logger()?;
 
     let config_path = dirs::config_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
+        .or_else(|| dirs::home_dir())
+        .or_else(|| Some(std::env::temp_dir()))
+        .ok_or(Error::NoConfigDirectory)?
         .join(APP_NAME)
         .join("config.yaml");
 
