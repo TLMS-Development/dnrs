@@ -1,10 +1,9 @@
 use std::fmt::{self, Debug};
+use std::fs::File;
 
 use dnrs::{Config, FileConfig, RuntimeError, run, setup_logger};
-use lum_config::{
-    ConfigPathError, EnvironmentConfigParseError, FileConfigParseError, FileHandler, merge,
-};
-use lum_log::{error, log::SetLoggerError};
+use lum_config::{ConfigPathError, EnvironmentConfigParseError, FileConfigParseError, merge};
+use lum_log::{debug, error, log::SetLoggerError};
 use thiserror::Error;
 
 /*
@@ -52,6 +51,17 @@ enum Error {
     #[error("Failed to load file config: {0}")]
     FileHandler(#[from] ConfigPathError),
 
+    #[error("YAML config error: {0}")]
+    YamlConfig(#[from] serde_yaml::Error),
+
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+
+    #[error(
+        "Unable to determine config directory. No config directory, home directory, or temp directory available."
+    )]
+    NoConfigDirectory,
+
     #[error("Runtime error: {0}")]
     Runtime(#[from] RuntimeError),
 }
@@ -67,7 +77,29 @@ impl Debug for Error {
 async fn main() -> Result<(), Error> {
     setup_logger()?;
 
-    let file_config: FileConfig = FileHandler::new(APP_NAME, None, None)?.load_config()?;
+    let config_path = dirs::config_dir()
+        .or_else(|| dirs::home_dir())
+        .or_else(|| Some(std::env::temp_dir()))
+        .ok_or(Error::NoConfigDirectory)?
+        .join(APP_NAME)
+        .join("config.yaml");
+
+    let file_config: FileConfig = if config_path.exists() {
+        let file = File::open(&config_path)?;
+        serde_yaml::from_reader(file)?
+    } else {
+        let default_config = FileConfig::default();
+
+        if let Some(parent) = config_path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+
+        let file = File::create(&config_path)?;
+        serde_yaml::to_writer(file, &default_config)?;
+
+        debug!("Created default config file at: {}", config_path.display());
+        default_config
+    };
 
     let config = Config::default();
     let config = merge(config, file_config);

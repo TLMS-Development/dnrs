@@ -23,3 +23,5 @@ If your provider is not supported, you can implement your own provider by defini
 ## Configuration
 
 Documentation coming soon™
+
+See `docs/example-config.yaml` for configuration reference. *dnrs* creates this if no configuration is available at first start.
