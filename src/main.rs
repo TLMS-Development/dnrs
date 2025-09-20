@@ -1,6 +1,5 @@
 use std::fmt::{self, Debug};
 use std::fs::File;
-use std::path::PathBuf;
 
 use dnrs::{Config, FileConfig, RuntimeError, run, setup_logger};
 use lum_config::{ConfigPathError, EnvironmentConfigParseError, FileConfigParseError, merge};
