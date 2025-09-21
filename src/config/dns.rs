@@ -32,14 +32,14 @@ pub enum ResolveType {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "lum_libs::serde")]
-pub struct FileConfig {
+pub struct Config {
     #[serde(flatten)]
     pub dns: Type,
 }
 
-impl Default for FileConfig {
+impl Default for Config {
     fn default() -> Self {
-        FileConfig {
+        Config {
             dns: Type::Nitrado(nitrado::DnsConfig::default()),
         }
     }

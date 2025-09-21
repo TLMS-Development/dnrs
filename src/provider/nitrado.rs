@@ -15,7 +15,7 @@ use thiserror::Error;
 use crate::{
     config::dns::{AutomaticRecordConfig, RecordConfig, ResolveType},
     provider::{self, Feature, Provider},
-    types::dns::{self, Record, RecordValue},
+    types::dns::{self, MxRecord, Record, RecordValue},
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -70,6 +70,24 @@ impl Default for DnsConfig {
                     RecordConfig::Manual(dns::Record {
                         domain: "forward".to_string(),
                         value: RecordValue::CNAME("example.com".to_string()),
+                        ttl: Some(3600),
+                    }),
+                    RecordConfig::Manual(dns::Record {
+                        domain: "@".to_string(),
+                        value: RecordValue::MX(MxRecord {
+                            priority: 10,
+                            target: "mail.example.com".to_string(),
+                        }),
+                        ttl: Some(3600),
+                    }),
+                    RecordConfig::Manual(dns::Record {
+                        domain: "@".to_string(),
+                        value: RecordValue::TXT("v=spf1 include:example.com ~all".to_string()),
+                        ttl: Some(3600),
+                    }),
+                    RecordConfig::Manual(dns::Record {
+                        domain: "@".to_string(),
+                        value: RecordValue::Custom("RecordType".to_string(), "Value".to_string()),
                         ttl: Some(3600),
                     }),
                     RecordConfig::Automatic(AutomaticRecordConfig {

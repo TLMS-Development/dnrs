@@ -1,9 +1,10 @@
 use std::fmt::{self, Debug};
-use std::fs::File;
+use std::fs::{self, File};
 
-use dnrs::{Config, FileConfig, RuntimeError, run, setup_logger};
+use dnrs::{Config, RuntimeError, run, setup_logger};
 use lum_config::{ConfigPathError, EnvironmentConfigParseError, FileConfigParseError, merge};
-use lum_log::{debug, error, log::SetLoggerError};
+use lum_log::info;
+use lum_log::{error, log::SetLoggerError};
 use thiserror::Error;
 
 /*
@@ -57,9 +58,7 @@ enum Error {
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 
-    #[error(
-        "Unable to determine config directory. No config directory, home directory, or temp directory available."
-    )]
+    #[error("Unable to determine config directory")]
     NoConfigDirectory,
 
     #[error("Runtime error: {0}")]
@@ -78,31 +77,32 @@ async fn main() -> Result<(), Error> {
     setup_logger()?;
 
     let config_path = dirs::config_dir()
-        .or_else(|| dirs::home_dir())
-        .or_else(|| Some(std::env::temp_dir()))
         .ok_or(Error::NoConfigDirectory)?
         .join(APP_NAME)
         .join("config.yaml");
 
-    let file_config: FileConfig = if config_path.exists() {
+    let mut loaded_config: Option<Config> = None;
+    if config_path.exists() {
         let file = File::open(&config_path)?;
-        serde_yaml::from_reader(file)?
-    } else {
-        let default_config = FileConfig::default();
-
-        if let Some(parent) = config_path.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
-
-        let file = File::create(&config_path)?;
-        serde_yaml::to_writer(file, &default_config)?;
-
-        debug!("Created default config file at: {}", config_path.display());
-        default_config
-    };
+        loaded_config = Some(serde_yaml::from_reader(file)?);
+    }
+    let config_existed = loaded_config.is_some();
 
     let config = Config::default();
-    let config = merge(config, file_config);
+    let config = match loaded_config {
+        Some(loaded_config) => merge(config, loaded_config),
+        None => config,
+    };
+
+    if let Some(parent) = config_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    let file = File::create(&config_path)?;
+    serde_yaml::to_writer(file, &config)?;
+
+    if !config_existed {
+        info!("Created default config file at: {}", config_path.display());
+    }
 
     run(config).await?;
     Ok(())

@@ -10,14 +10,14 @@ pub enum Provider {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "lum_libs::serde")]
-pub struct FileConfig {
+pub struct Config {
     #[serde(flatten)]
     pub provider: Provider,
 }
 
-impl Default for FileConfig {
+impl Default for Config {
     fn default() -> Self {
-        FileConfig {
+        Config {
             provider: Provider::Nitrado(nitrado::ProviderConfig::default()),
         }
     }
