@@ -10,7 +10,7 @@ use crate::{
 };
 
 #[derive(Debug, ClapSubcommand)]
-#[command(version, about, long_about = None, propagate_version = true)]
+#[command(version, about, long_about = None)]
 pub enum Subcommand<'a> {
     Auto(auto::Command<'a>),
     Get(get::Command<'a>),

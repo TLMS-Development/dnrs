@@ -1,110 +1,19 @@
-use std::{
-    net::{Ipv4Addr, Ipv6Addr},
-    str::FromStr,
-};
-
 use anyhow::Result;
 use async_trait::async_trait;
-use lum_libs::{
-    serde::{Deserialize, Serialize},
-    serde_json,
-};
+use lum_libs::serde_json;
 use reqwest::header::HeaderMap;
 use thiserror::Error;
 
 use crate::{
-    config::dns::{AutomaticRecordConfig, RecordConfig, ResolveType},
-    provider::{self, Feature, Provider},
-    types::dns::{self, MxRecord, Record, RecordValue},
+    provider::{Feature, GetAllRecordsInput, GetRecordsInput, Provider},
+    types::dns::{self},
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(crate = "lum_libs::serde")]
-pub struct Config {
-    pub name: String,
-    pub api_key: String,
-    pub api_base_url: String,
-}
+pub mod config;
+pub mod model;
 
-impl Default for Config {
-    fn default() -> Self {
-        Config {
-            name: "Nitrado1".to_string(),
-            api_key: "your_api_key".to_string(),
-            api_base_url: "https://api.nitrado.net".to_string(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(crate = "lum_libs::serde")]
-pub struct DomainConfig {
-    pub domain: String,
-    pub records: Vec<RecordConfig>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(crate = "lum_libs::serde")]
-pub struct DnsConfig {
-    pub provider_name: String,
-    pub domains: Vec<DomainConfig>,
-}
-
-impl Default for DnsConfig {
-    fn default() -> Self {
-        DnsConfig {
-            provider_name: "Nitrado1".to_string(),
-            domains: vec![DomainConfig {
-                domain: "example.com".to_string(),
-                records: vec![
-                    RecordConfig::Manual(dns::Record {
-                        domain: "ipv4".to_string(),
-                        value: RecordValue::A(Ipv4Addr::from_str("127.0.0.1").unwrap()),
-                        ttl: Some(3600),
-                    }),
-                    RecordConfig::Manual(dns::Record {
-                        domain: "ipv6".to_string(),
-                        value: RecordValue::AAAA(Ipv6Addr::from_str("::1").unwrap()),
-                        ttl: Some(3600),
-                    }),
-                    RecordConfig::Manual(dns::Record {
-                        domain: "forward".to_string(),
-                        value: RecordValue::CNAME("example.com".to_string()),
-                        ttl: Some(3600),
-                    }),
-                    RecordConfig::Manual(dns::Record {
-                        domain: "@".to_string(),
-                        value: RecordValue::MX(MxRecord {
-                            priority: 10,
-                            target: "mail.example.com".to_string(),
-                        }),
-                        ttl: Some(3600),
-                    }),
-                    RecordConfig::Manual(dns::Record {
-                        domain: "@".to_string(),
-                        value: RecordValue::TXT("v=spf1 include:example.com ~all".to_string()),
-                        ttl: Some(3600),
-                    }),
-                    RecordConfig::Manual(dns::Record {
-                        domain: "@".to_string(),
-                        value: RecordValue::Custom("RecordType".to_string(), "Value".to_string()),
-                        ttl: Some(3600),
-                    }),
-                    RecordConfig::Automatic(AutomaticRecordConfig {
-                        domain: "auto-ipv4".to_string(),
-                        ttl: Some(300),
-                        resolve_type: ResolveType::IPv4,
-                    }),
-                    RecordConfig::Automatic(AutomaticRecordConfig {
-                        domain: "auto-ipv6".to_string(),
-                        ttl: Some(300),
-                        resolve_type: ResolveType::IPv6,
-                    }),
-                ],
-            }],
-        }
-    }
-}
+pub use config::{Config, DnsConfig, DomainConfig};
+pub use model::{GetRecordsResponse, Record, RecordMode, TryFromRecordError};
 
 pub struct NitradoProvider<'provider_config> {
     pub provider_config: &'provider_config Config,
@@ -136,8 +45,8 @@ impl Provider for NitradoProvider<'_> {
 
     fn get_supported_features(&self) -> Vec<Feature> {
         vec![
-            Feature::GetRecord,
             Feature::GetRecords,
+            Feature::GetAllRecords,
             Feature::AddRecord,
             Feature::UpdateRecord,
             Feature::DeleteRecord,
@@ -146,8 +55,25 @@ impl Provider for NitradoProvider<'_> {
     async fn get_records(
         &self,
         reqwest: reqwest::Client,
-        input: &provider::GetRecordsInput,
-    ) -> Result<Vec<Record>> {
+        input: &GetRecordsInput,
+    ) -> Result<Vec<dns::Record>> {
+        let get_all_records_input = GetAllRecordsInput::from(input);
+        let records = self
+            .get_all_records(reqwest, &get_all_records_input)
+            .await?;
+        let records = records
+            .into_iter()
+            .filter(|record| input.subdomains.contains(&record.domain.as_str()))
+            .collect();
+
+        Ok(records)
+    }
+
+    async fn get_all_records(
+        &self,
+        reqwest: reqwest::Client,
+        input: &GetAllRecordsInput,
+    ) -> Result<Vec<dns::Record>> {
         let mut headers = HeaderMap::new();
         headers.insert(
             "Authorization",
@@ -168,23 +94,21 @@ impl Provider for NitradoProvider<'_> {
         }
 
         let text = response.text().await?;
-        let json = serde_json::from_str(&text)?;
-        Ok(json)
+        let response: GetRecordsResponse = serde_json::from_str(&text)?;
+        let records: Vec<dns::Record> = response.try_into()?;
+
+        Ok(records)
     }
 
-    async fn get_all_records(&self, _reqwest: reqwest::Client) -> Result<Vec<Record>> {
+    async fn add_record(&self, _reqwest: reqwest::Client, _input: &dns::Record) -> Result<()> {
         unimplemented!()
     }
 
-    async fn add_record(&self, _reqwest: reqwest::Client, _input: &Record) -> Result<()> {
+    async fn update_record(&self, _reqwest: reqwest::Client, _input: &dns::Record) -> Result<()> {
         unimplemented!()
     }
 
-    async fn update_record(&self, _reqwest: reqwest::Client, _input: &Record) -> Result<()> {
-        unimplemented!()
-    }
-
-    async fn delete_record(&self, _reqwest: reqwest::Client, _input: &Record) -> Result<()> {
+    async fn delete_record(&self, _reqwest: reqwest::Client, _input: &dns::Record) -> Result<()> {
         unimplemented!()
     }
 }
