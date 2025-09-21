@@ -7,16 +7,36 @@ pub mod nitrado;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Feature {
-    GetRecord,
     GetRecords,
+    GetAllRecords,
     AddRecord,
     UpdateRecord,
     DeleteRecord,
 }
 
-pub struct GetRecordInput {}
-pub struct GetRecordsInput {
-    pub domain: String,
+pub struct GetRecordsInput<'input> {
+    pub domain: &'input str,
+    pub subdomains: Vec<&'input str>,
+}
+
+pub struct GetAllRecordsInput<'input> {
+    pub domain: &'input str,
+}
+
+impl<'input> From<GetRecordsInput<'input>> for GetAllRecordsInput<'input> {
+    fn from(input: GetRecordsInput<'input>) -> Self {
+        GetAllRecordsInput {
+            domain: input.domain,
+        }
+    }
+}
+
+impl<'input> From<&'input GetRecordsInput<'input>> for GetAllRecordsInput<'input> {
+    fn from(input: &'input GetRecordsInput<'input>) -> Self {
+        GetAllRecordsInput {
+            domain: input.domain,
+        }
+    }
 }
 
 #[async_trait]
@@ -32,7 +52,13 @@ pub trait Provider {
         reqwest: reqwest::Client,
         input: &GetRecordsInput,
     ) -> Result<Vec<Record>>;
-    async fn get_all_records(&self, reqwest: reqwest::Client) -> Result<Vec<Record>>;
+
+    async fn get_all_records(
+        &self,
+        reqwest: reqwest::Client,
+        input: &GetAllRecordsInput,
+    ) -> Result<Vec<Record>>;
+
     async fn add_record(&self, reqwest: reqwest::Client, record: &Record) -> Result<()>;
     async fn update_record(&self, reqwest: reqwest::Client, record: &Record) -> Result<()>;
     async fn delete_record(&self, reqwest: reqwest::Client, record: &Record) -> Result<()>;

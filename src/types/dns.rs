@@ -16,8 +16,11 @@ pub enum RecordValue {
     AAAA(Ipv6Addr),
     CNAME(String),
     TXT(String),
+    SPF(String),
     MX(MxRecord),
-    Custom(String, String),
+    SRV(u16, u16, u16, String),
+    TLSA(u16, u16, u16, String),
+    CAA(u8, String, String),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -26,4 +29,18 @@ pub struct Record {
     pub domain: String,
     pub value: RecordValue,
     pub ttl: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(crate = "lum_libs::serde")]
+pub enum RecordType {
+    A,
+    AAAA,
+    CNAME,
+    TXT,
+    SPF,
+    MX,
+    SRV,
+    TLSA,
+    CAA,
 }

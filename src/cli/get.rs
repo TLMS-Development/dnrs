@@ -7,7 +7,7 @@ use crate::{
     Config,
     cli::ExecutableCommand,
     config::provider::Provider as ProviderConfig,
-    provider::{Provider, nitrado::NitradoProvider},
+    provider::{GetAllRecordsInput, GetRecordsInput, Provider, nitrado::NitradoProvider},
 };
 
 #[derive(Debug)]
@@ -20,21 +20,24 @@ pub struct Input<'config> {
 pub enum Error {
     #[error("The given provider is not configured: {0}")]
     ProviderNotConfigured(String),
+
+    #[error("Provider error: {0}")]
+    ProviderError(#[from] anyhow::Error),
 }
 
 //TODO: Fix order of usage message (provider should come first)
 #[derive(Debug, Args)]
 #[group(required = true, multiple = false)]
-pub struct DomainArgs {
-    /// Domains to get records for
-    domains: Vec<String>,
+pub struct SubdomainArgs {
+    /// Subdomains to get records for
+    subdomains: Vec<String>,
 
     /// Get all records
     #[clap(short, long, default_value = "false")]
     pub all: bool,
 }
 
-/// Update providers as defined in the configuration file
+/// Get one or more DNS records from a provider
 #[derive(Debug, Parser)]
 #[command(version, about, long_about = None, propagate_version = true)]
 pub struct Command<'command> {
@@ -44,10 +47,14 @@ pub struct Command<'command> {
     /// Name of the provider to get records from
     provider: String,
 
+    /// Domain to get records for
+    domain: String,
+
     #[command(flatten)]
-    domain_args: DomainArgs,
+    subdomain_args: SubdomainArgs,
 }
 
+//TODO: Move
 fn get_provider<'config>(
     name: &str,
     config: &'config Config,
@@ -73,13 +80,42 @@ impl<'command> ExecutableCommand<'command> for Command<'command> {
         let config = input.config;
         let provider_name = self.provider.as_str();
 
-        let _provider = match get_provider(provider_name, config) {
+        let provider = match get_provider(provider_name, config) {
             Some(p) => p,
             None => return Err(Error::ProviderNotConfigured(provider_name.to_string())),
         };
 
-        let _reqwest = reqwest::Client::new();
+        let reqwest = reqwest::Client::new();
 
+        let results = if self.subdomain_args.all {
+            let input = GetAllRecordsInput {
+                domain: self.domain.as_str(),
+            };
+
+            provider.get_all_records(reqwest, &input).await
+        } else {
+            let input = GetRecordsInput {
+                domain: self.domain.as_str(),
+                subdomains: self
+                    .subdomain_args
+                    .subdomains
+                    .iter()
+                    .map(|s| s.as_str())
+                    .collect(),
+            };
+
+            provider.get_records(reqwest, &input).await
+        };
+
+        let records = match results {
+            Err(e) => {
+                eprintln!("Error: {}", e);
+                return Err(e.into());
+            }
+            Ok(records) => records,
+        };
+
+        println!("Records: {:#?}", records);
         Ok(())
     }
 }

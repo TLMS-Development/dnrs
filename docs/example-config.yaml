@@ -6,12 +6,12 @@ resolver:
     url: https://ipv6.cancom.io
     type: Raw
 providers:
-- Nitrado:
+- provider: !Nitrado
     name: Nitrado1
     api_key: your_api_key
     api_base_url: https://api.nitrado.net
 dns:
-- Nitrado:
+- dns: !Nitrado
     provider_name: Nitrado1
     domains:
     - domain: example.com
@@ -30,19 +30,40 @@ dns:
         ttl: 3600
       - !Manual
         domain: '@'
+        value: !TXT v=spf1 include:example.com ~all
+        ttl: 3600
+      - !Manual
+        domain: '@'
+        value: !SPF v=spf1 include:example.com ~all
+        ttl: 3600
+      - !Manual
+        domain: '@'
         value: !MX
           priority: 10
           target: mail.example.com
         ttl: 3600
       - !Manual
         domain: '@'
-        value: !TXT v=spf1 include:example.com ~all
+        value: !SRV
+        - 10
+        - 10
+        - 10
+        - example.com
+        ttl: 3600
+      - !Manual
+        domain: _443._tcp
+        value: !TLSA
+        - 3
+        - 1
+        - 1
+        - abcdef0123456789
         ttl: 3600
       - !Manual
         domain: '@'
-        value: !Custom
-        - RecordType
-        - Value
+        value: !CAA
+        - 0
+        - issue
+        - letsencrypt.org
         ttl: 3600
       - !Automatic
         domain: auto-ipv4
