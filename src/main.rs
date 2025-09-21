@@ -53,7 +53,7 @@ enum Error {
     FileHandler(#[from] ConfigPathError),
 
     #[error("YAML config error: {0}")]
-    YamlConfig(#[from] serde_yaml::Error),
+    YamlConfig(#[from] serde_yaml_ng::Error),
 
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
@@ -84,7 +84,7 @@ async fn main() -> Result<(), Error> {
     let mut loaded_config: Option<Config> = None;
     if config_path.exists() {
         let file = File::open(&config_path)?;
-        loaded_config = Some(serde_yaml::from_reader(file)?);
+        loaded_config = Some(serde_yaml_ng::from_reader(file)?);
     }
     let config_existed = loaded_config.is_some();
 
@@ -98,7 +98,7 @@ async fn main() -> Result<(), Error> {
         fs::create_dir_all(parent)?;
     }
     let file = File::create(&config_path)?;
-    serde_yaml::to_writer(file, &config)?;
+    serde_yaml_ng::to_writer(file, &config)?;
 
     if !config_existed {
         info!("Created default config file at: {}", config_path.display());

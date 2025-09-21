@@ -22,6 +22,6 @@ lum_config = "0.2.3"
 lum_libs = { version = "0.2.4", features = ["serde"] }
 lum_log = "0.2.5"
 reqwest = "0.12.19"
-serde_yaml = "0.9.34"
+serde_yaml_ng = "0.10.0"
 thiserror = "2.0.12"
 tokio = { version = "1.45.1", features = ["full"] }
