@@ -1,0 +1,54 @@
+resolver:
+  ipv4:
+    url: https://ip.cancom.io
+    type: Raw
+  ipv6:
+    url: https://ipv6.cancom.io
+    type: Raw
+providers:
+- Nitrado:
+    name: Nitrado1
+    api_key: your_api_key
+    api_base_url: https://api.nitrado.net
+dns:
+- Nitrado:
+    provider_name: Nitrado1
+    domains:
+    - domain: example.com
+      records:
+      - !Manual
+        domain: ipv4
+        value: !A 127.0.0.1
+        ttl: 3600
+      - !Manual
+        domain: ipv6
+        value: !AAAA ::1
+        ttl: 3600
+      - !Manual
+        domain: forward
+        value: !CNAME example.com
+        ttl: 3600
+      - !Manual
+        domain: '@'
+        value: !MX
+          priority: 10
+          target: mail.example.com
+        ttl: 3600
+      - !Manual
+        domain: '@'
+        value: !TXT v=spf1 include:example.com ~all
+        ttl: 3600
+      - !Manual
+        domain: '@'
+        value: !Custom
+        - RecordType
+        - Value
+        ttl: 3600
+      - !Automatic
+        domain: auto-ipv4
+        ttl: 300
+        resolve_type: IPv4
+      - !Automatic
+        domain: auto-ipv6
+        ttl: 300
+        resolve_type: IPv6

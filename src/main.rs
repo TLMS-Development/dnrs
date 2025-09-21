@@ -1,9 +1,9 @@
 use std::fmt::{self, Debug};
+use std::fs::{self, File};
 
-use dnrs::{Config, FileConfig, RuntimeError, run, setup_logger};
-use lum_config::{
-    ConfigPathError, EnvironmentConfigParseError, FileConfigParseError, FileHandler, merge,
-};
+use dnrs::{Config, RuntimeError, run, setup_logger};
+use lum_config::{ConfigPathError, EnvironmentConfigParseError, FileConfigParseError, merge};
+use lum_log::info;
 use lum_log::{error, log::SetLoggerError};
 use thiserror::Error;
 
@@ -52,6 +52,15 @@ enum Error {
     #[error("Failed to load file config: {0}")]
     FileHandler(#[from] ConfigPathError),
 
+    #[error("YAML config error: {0}")]
+    YamlConfig(#[from] serde_yaml_ng::Error),
+
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+
+    #[error("Unable to determine config directory")]
+    NoConfigDirectory,
+
     #[error("Runtime error: {0}")]
     Runtime(#[from] RuntimeError),
 }
@@ -67,10 +76,33 @@ impl Debug for Error {
 async fn main() -> Result<(), Error> {
     setup_logger()?;
 
-    let file_config: FileConfig = FileHandler::new(APP_NAME, None, None)?.load_config()?;
+    let config_path = dirs::config_dir()
+        .ok_or(Error::NoConfigDirectory)?
+        .join(APP_NAME)
+        .join("config.yaml");
+
+    let mut loaded_config: Option<Config> = None;
+    if config_path.exists() {
+        let file = File::open(&config_path)?;
+        loaded_config = Some(serde_yaml_ng::from_reader(file)?);
+    }
+    let config_existed = loaded_config.is_some();
 
     let config = Config::default();
-    let config = merge(config, file_config);
+    let config = match loaded_config {
+        Some(loaded_config) => merge(config, loaded_config),
+        None => config,
+    };
+
+    if let Some(parent) = config_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    let file = File::create(&config_path)?;
+    serde_yaml_ng::to_writer(file, &config)?;
+
+    if !config_existed {
+        info!("Created default config file at: {}", config_path.display());
+    }
 
     run(config).await?;
     Ok(())

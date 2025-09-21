@@ -18,14 +18,14 @@ pub struct IpResolver {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "lum_libs::serde")]
-pub struct FileConfig {
+pub struct Config {
     pub ipv4: IpResolver,
     pub ipv6: IpResolver,
 }
 
-impl Default for FileConfig {
+impl Default for Config {
     fn default() -> Self {
-        FileConfig {
+        Config {
             ipv4: IpResolver {
                 url: "https://ip.cancom.io".to_string(),
                 type_: IpResolverType::Raw,

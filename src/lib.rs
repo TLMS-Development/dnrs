@@ -12,7 +12,7 @@ pub mod provider;
 pub mod resolver;
 pub mod types;
 
-pub use config::{Config, FileConfig};
+pub use config::Config;
 pub use logger::setup_logger;
 
 pub const PROGRAM_NAME: &str = env!("CARGO_PKG_NAME");
