@@ -20,15 +20,15 @@ use crate::{
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "lum_libs::serde")]
-pub struct ProviderConfig {
+pub struct Config {
     pub name: String,
     pub api_key: String,
     pub api_base_url: String,
 }
 
-impl Default for ProviderConfig {
+impl Default for Config {
     fn default() -> Self {
-        ProviderConfig {
+        Config {
             name: "Nitrado1".to_string(),
             api_key: "your_api_key".to_string(),
             api_base_url: "https://api.nitrado.net".to_string(),
@@ -107,13 +107,11 @@ impl Default for DnsConfig {
 }
 
 pub struct NitradoProvider<'provider_config> {
-    pub provider_config: &'provider_config ProviderConfig,
+    pub provider_config: &'provider_config Config,
 }
 
 impl<'provider_config> NitradoProvider<'provider_config> {
-    pub fn new(
-        provider_config: &'provider_config ProviderConfig,
-    ) -> NitradoProvider<'provider_config> {
+    pub fn new(provider_config: &'provider_config Config) -> NitradoProvider<'provider_config> {
         NitradoProvider { provider_config }
     }
 }

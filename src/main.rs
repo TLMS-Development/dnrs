@@ -88,10 +88,10 @@ async fn main() -> Result<(), Error> {
     }
     let config_existed = loaded_config.is_some();
 
-    let config = Config::default();
+    let default_config = Config::default();
     let config = match loaded_config {
-        Some(loaded_config) => merge(config, loaded_config),
-        None => config,
+        Some(loaded_config) => merge(default_config, loaded_config),
+        None => default_config,
     };
 
     if let Some(parent) = config_path.parent() {

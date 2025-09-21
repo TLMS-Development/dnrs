@@ -33,7 +33,8 @@ pub enum ResolveType {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "lum_libs::serde")]
 pub struct Config {
-    #[serde(flatten)]
+    // https://github.com/acatton/serde-yaml-ng/issues/14
+    //#[serde(flatten)]
     pub dns: Type,
 }
 
