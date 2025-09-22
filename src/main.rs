@@ -3,8 +3,7 @@ use std::fs::{self, File};
 
 use dnrs::{Config, RuntimeError, run, setup_logger};
 use lum_config::{ConfigPathError, EnvironmentConfigParseError, FileConfigParseError, merge};
-use lum_log::info;
-use lum_log::{error, log::SetLoggerError};
+use lum_log::{error, info, log::SetLoggerError};
 use thiserror::Error;
 
 /*
@@ -107,38 +106,3 @@ async fn main() -> Result<(), Error> {
     run(config).await?;
     Ok(())
 }
-
-/*
-let reqwest = reqwest::Client::new();
-
-    let auth = format!("Bearer {}", dnrs::TOKEN);
-
-    let mut headers = HeaderMap::new();
-    headers.insert(header::AUTHORIZATION, HeaderValue::from_str(&auth).unwrap());
-    headers.insert("Content-Type", HeaderValue::from_static("application/json"));
-
-    let response = reqwest
-        .get("https://api.nitrado.net/domain/<domain>/records")
-        .headers(headers)
-        .send()
-        .await;
-
-    let response = match response {
-        Ok(response) => response,
-        Err(error) => {
-            error!("Error sending request: {}", error);
-            return Err(1);
-        }
-    };
-
-    let text = match response.text().await {
-        Ok(text) => text,
-        Err(error) => {
-            error!("Error reading response text: {}", error);
-            return Err(1);
-        }
-    };
-
-    info!("Result: {}", text);
-    Ok(())
-     */

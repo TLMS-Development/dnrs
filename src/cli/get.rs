@@ -7,7 +7,10 @@ use crate::{
     Config,
     cli::ExecutableCommand,
     config::provider::Provider as ProviderConfig,
-    provider::{GetAllRecordsInput, GetRecordsInput, Provider, nitrado::NitradoProvider},
+    provider::{
+        GetAllRecordsInput, GetRecordsInput, Provider, hetzner::HetznerProvider,
+        nitrado::NitradoProvider,
+    },
 };
 
 #[derive(Debug)]
@@ -59,11 +62,18 @@ fn get_provider<'config>(
     name: &str,
     config: &'config Config,
 ) -> Option<Box<dyn Provider + 'config>> {
-    for provider_file_config in config.providers.iter() {
-        match &provider_file_config.provider {
-            ProviderConfig::Nitrado(nitrado_config) => {
-                if name == nitrado_config.name {
-                    return Some(Box::new(NitradoProvider::new(nitrado_config)));
+    for provider_config in config.providers.iter() {
+        for provider in provider_config.providers.iter() {
+            match provider {
+                ProviderConfig::Nitrado(nitrado_config) => {
+                    if name == nitrado_config.name {
+                        return Some(Box::new(NitradoProvider::new(nitrado_config)));
+                    }
+                }
+                ProviderConfig::Hetzner(hetzner_config) => {
+                    if name == hetzner_config.name {
+                        return Some(Box::new(HetznerProvider::new(hetzner_config)));
+                    }
                 }
             }
         }
