@@ -3,6 +3,7 @@ use async_trait::async_trait;
 
 use crate::types::dns::Record;
 
+pub mod hetzner;
 pub mod nitrado;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
