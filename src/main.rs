@@ -3,8 +3,7 @@ use std::fs::{self, File};
 
 use dnrs::{Config, RuntimeError, run, setup_logger};
 use lum_config::{ConfigPathError, EnvironmentConfigParseError, FileConfigParseError, merge};
-use lum_log::info;
-use lum_log::log::SetLoggerError;
+use lum_log::{error, info, log::SetLoggerError};
 use thiserror::Error;
 
 /*
