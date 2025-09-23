@@ -34,6 +34,7 @@ use thiserror::Error;
       - CLI options can override config file options
     - Add command: Always accept multiple domains, use batch if provider supports it
     - Models (Responses, Errors)
+    - Add conditional Config files (per provider configs)
 */
 
 const APP_NAME: &str = "dnrs";
