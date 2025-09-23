@@ -1,6 +1,6 @@
 use lum_libs::serde::{Deserialize, Serialize};
 
-use crate::provider::{hetzner, nitrado};
+use crate::provider::{hetzner, netcup, nitrado};
 use crate::types;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -8,6 +8,7 @@ use crate::types;
 pub enum Type {
     Nitrado(nitrado::DnsConfig),
     Hetzner(hetzner::DnsConfig),
+    Netcup(netcup::DnsConfig),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

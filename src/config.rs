@@ -56,6 +56,7 @@ impl Config {
             return Ok(vec![
                 provider::Provider::Nitrado(crate::provider::nitrado::Config::default()),
                 provider::Provider::Hetzner(crate::provider::hetzner::Config::default()),
+                provider::Provider::Netcup(crate::provider::netcup::Config::default()),
             ]);
         }
 
@@ -86,6 +87,12 @@ impl Config {
                             serde_yaml_ng::from_str(&content)?;
                         configs.push(provider::Provider::Nitrado(config));
                         debug!("Loaded Nitrado provider config from {:?}", path);
+                    }
+                    "netcup" => {
+                        let config: crate::provider::netcup::Config =
+                            serde_yaml_ng::from_str(&content)?;
+                        configs.push(provider::Provider::Netcup(config));
+                        debug!("Loaded Netcup provider config from {:?}", path);
                     }
                     _ => {
                         error!("Warning: Unknown provider config file: {}", path.display());
@@ -144,6 +151,11 @@ impl Config {
                         serde_yaml_ng::from_str(&content)?;
                     configs.push(dns::Type::Nitrado(config));
                     debug!("Loaded Nitrado DNS config from {:?}", path);
+                } else if file_stem.contains("netcup") {
+                    let config: crate::provider::netcup::DnsConfig =
+                        serde_yaml_ng::from_str(&content)?;
+                    configs.push(dns::Type::Netcup(config));
+                    debug!("Loaded Netcup DNS config from {:?}", path);
                 } else {
                     error!(
                         "Warning: Cannot determine DNS config type for file: {}",
@@ -175,6 +187,10 @@ impl Config {
         let nitrado_yaml = serde_yaml_ng::to_string(&nitrado_config)?;
         std::fs::write(config_dir.join("providers/nitrado.yaml"), nitrado_yaml)?;
 
+        let netcup_config = crate::provider::netcup::Config::default();
+        let netcup_yaml = serde_yaml_ng::to_string(&netcup_config)?;
+        std::fs::write(config_dir.join("providers/netcup.yaml"), netcup_yaml)?;
+
         let hetzner_dns_config = crate::provider::hetzner::DnsConfig::default();
         let hetzner_dns_yaml = serde_yaml_ng::to_string(&hetzner_dns_config)?;
         std::fs::write(
@@ -189,6 +205,10 @@ impl Config {
             nitrado_dns_yaml,
         )?;
 
+        let netcup_dns_config = crate::provider::netcup::DnsConfig::default();
+        let netcup_dns_yaml = serde_yaml_ng::to_string(&netcup_dns_config)?;
+        std::fs::write(config_dir.join("dns/netcup-domains.yaml"), netcup_dns_yaml)?;
+
         info!("Created example config structure in {:?}", config_dir);
         Ok(())
     }
@@ -201,10 +221,12 @@ impl Default for Config {
             providers: vec![
                 provider::Provider::Nitrado(crate::provider::nitrado::Config::default()),
                 provider::Provider::Hetzner(crate::provider::hetzner::Config::default()),
+                provider::Provider::Netcup(crate::provider::netcup::Config::default()),
             ],
             dns: vec![
                 dns::Type::Nitrado(crate::provider::nitrado::DnsConfig::default()),
                 dns::Type::Hetzner(crate::provider::hetzner::DnsConfig::default()),
+                dns::Type::Netcup(crate::provider::netcup::DnsConfig::default()),
             ],
         }
     }
@@ -213,15 +235,12 @@ impl Default for Config {
 impl MergeFrom<Self> for Config {
     fn merge_from(self, other: Self) -> Self {
         Self {
-            // Always use loaded resolver (it will be default if file doesn't exist)
             resolver: other.resolver,
-            // Use loaded providers if not empty, otherwise keep defaults
             providers: if !other.providers.is_empty() {
                 other.providers
             } else {
                 self.providers
             },
-            // Use loaded DNS configs if not empty, otherwise keep defaults
             dns: if !other.dns.is_empty() {
                 other.dns
             } else {

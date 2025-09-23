@@ -10,7 +10,7 @@ use crate::{
     config::provider::Provider as ProviderConfig,
     provider::{
         GetAllRecordsInput, GetRecordsInput, Provider, hetzner::HetznerProvider,
-        nitrado::NitradoProvider,
+        netcup::NetcupProvider, nitrado::NitradoProvider,
     },
 };
 
@@ -74,6 +74,11 @@ fn get_provider<'config>(
             ProviderConfig::Hetzner(hetzner_config) => {
                 if name == hetzner_config.name {
                     return Some(Box::new(HetznerProvider::new(hetzner_config)));
+                }
+            }
+            ProviderConfig::Netcup(netcup_config) => {
+                if name == netcup_config.name {
+                    return Some(Box::new(NetcupProvider::new(netcup_config)));
                 }
             }
         }
