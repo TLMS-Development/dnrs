@@ -1,10 +1,9 @@
 use std::fmt::{self, Debug};
-use std::fs::{self, File};
+use std::fs;
 
 use dnrs::{Config, RuntimeError, run, setup_logger};
-use lum_config::{ConfigPathError, EnvironmentConfigParseError, FileConfigParseError, merge};
-use lum_log::info;
-use lum_log::{error, log::SetLoggerError};
+use lum_config::{ConfigPathError, EnvironmentConfigParseError, FileConfigParseError};
+use lum_log::{info, log::SetLoggerError};
 use thiserror::Error;
 
 /*
@@ -59,6 +58,9 @@ enum Error {
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 
+    #[error("Config error: {0}")]
+    Config(#[from] anyhow::Error),
+
     #[error("Unable to determine config directory")]
     NoConfigDirectory,
 
@@ -77,69 +79,26 @@ impl Debug for Error {
 async fn main() -> Result<(), Error> {
     setup_logger()?;
 
-    let config_path = dirs::config_dir()
+    let config_dir = dirs::config_dir()
         .ok_or(Error::NoConfigDirectory)?
-        .join(APP_NAME)
-        .join("config.yaml");
+        .join(APP_NAME);
 
-    let mut loaded_config: Option<Config> = None;
-    if config_path.exists() {
-        let file = File::open(&config_path)?;
-        loaded_config = Some(serde_yaml_ng::from_reader(file)?);
-    }
-    let config_existed = loaded_config.is_some();
+    let config = if config_dir.exists() {
+        Config::load_from_directory(&config_dir)?
+    } else {
+        info!("Config directory does not exist, creating default structure...");
+        fs::create_dir_all(&config_dir)?;
 
-    let default_config = Config::default();
-    let config = match loaded_config {
-        Some(loaded_config) => merge(default_config, loaded_config),
-        None => default_config,
+        Config::create_example_structure(&config_dir)?;
+        info!(
+            "Created default config structure at: {}",
+            config_dir.display()
+        );
+        info!("Please configure your providers and DNS settings, then run again.");
+
+        Config::default()
     };
-
-    if let Some(parent) = config_path.parent() {
-        fs::create_dir_all(parent)?;
-    }
-    let file = File::create(&config_path)?;
-    serde_yaml_ng::to_writer(file, &config)?;
-
-    if !config_existed {
-        info!("Created default config file at: {}", config_path.display());
-    }
 
     run(config).await?;
     Ok(())
 }
-
-/*
-let reqwest = reqwest::Client::new();
-
-    let auth = format!("Bearer {}", dnrs::TOKEN);
-
-    let mut headers = HeaderMap::new();
-    headers.insert(header::AUTHORIZATION, HeaderValue::from_str(&auth).unwrap());
-    headers.insert("Content-Type", HeaderValue::from_static("application/json"));
-
-    let response = reqwest
-        .get("https://api.nitrado.net/domain/<domain>/records")
-        .headers(headers)
-        .send()
-        .await;
-
-    let response = match response {
-        Ok(response) => response,
-        Err(error) => {
-            error!("Error sending request: {}", error);
-            return Err(1);
-        }
-    };
-
-    let text = match response.text().await {
-        Ok(text) => text,
-        Err(error) => {
-            error!("Error reading response text: {}", error);
-            return Err(1);
-        }
-    };
-
-    info!("Result: {}", text);
-    Ok(())
-     */

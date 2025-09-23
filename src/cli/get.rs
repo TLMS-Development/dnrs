@@ -1,6 +1,7 @@
 use std::marker::PhantomData;
 
 use clap::{Args, Parser};
+use lum_log::{error, info};
 use thiserror::Error;
 
 use crate::{
@@ -28,7 +29,6 @@ pub enum Error {
     ProviderError(#[from] anyhow::Error),
 }
 
-//TODO: Fix order of usage message (provider should come first)
 #[derive(Debug, Args)]
 #[group(required = true, multiple = false)]
 pub struct SubdomainArgs {
@@ -62,18 +62,16 @@ fn get_provider<'config>(
     name: &str,
     config: &'config Config,
 ) -> Option<Box<dyn Provider + 'config>> {
-    for provider_config in config.providers.iter() {
-        for provider in provider_config.providers.iter() {
-            match provider {
-                ProviderConfig::Nitrado(nitrado_config) => {
-                    if name == nitrado_config.name {
-                        return Some(Box::new(NitradoProvider::new(nitrado_config)));
-                    }
+    for provider in config.providers.iter() {
+        match provider {
+            ProviderConfig::Nitrado(nitrado_config) => {
+                if name == nitrado_config.name {
+                    return Some(Box::new(NitradoProvider::new(nitrado_config)));
                 }
-                ProviderConfig::Hetzner(hetzner_config) => {
-                    if name == hetzner_config.name {
-                        return Some(Box::new(HetznerProvider::new(hetzner_config)));
-                    }
+            }
+            ProviderConfig::Hetzner(hetzner_config) => {
+                if name == hetzner_config.name {
+                    return Some(Box::new(HetznerProvider::new(hetzner_config)));
                 }
             }
         }
@@ -119,13 +117,13 @@ impl<'command> ExecutableCommand<'command> for Command<'command> {
 
         let records = match results {
             Err(e) => {
-                eprintln!("Error: {}", e);
+                error!("Error: {}", e);
                 return Err(e.into());
             }
             Ok(records) => records,
         };
 
-        println!("Records: {:#?}", records);
+        info!("Records: {:#?}", records);
         Ok(())
     }
 }
