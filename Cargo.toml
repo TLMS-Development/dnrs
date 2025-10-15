@@ -24,4 +24,4 @@ lum_log = "0.2.5"
 reqwest = "0.12.19"
 serde_yaml_ng = "0.10.0"
 thiserror = "2.0.12"
-tokio = { version = "1.45.1", features = ["full"] }
+tokio = { version = "1.48.0", features = ["full"] }
