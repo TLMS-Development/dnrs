@@ -1,7 +1,7 @@
 use std::fmt::{self, Debug};
 use std::fs;
 
-use dnrs::{Config, RuntimeError, run, setup_logger};
+use dnrs::{Config, RuntimeError, config, run, setup_logger};
 use lum_config::{ConfigPathError, EnvironmentConfigParseError, FileConfigParseError};
 use lum_log::{info, log::SetLoggerError};
 use thiserror::Error;
@@ -64,6 +64,9 @@ enum Error {
     #[error("Unable to determine config directory")]
     NoConfigDirectory,
 
+    #[error("Config path exists but is not a directory")]
+    ConfigIsNotDirectory,
+
     #[error("Runtime error: {0}")]
     Runtime(#[from] RuntimeError),
 }
@@ -80,6 +83,10 @@ fn read_config() -> Result<Config, Error> {
         .ok_or(Error::NoConfigDirectory)?
         .join(APP_NAME);
 
+    if config_dir.exists() && !config_dir.is_dir() {
+        return Err(Error::ConfigIsNotDirectory);
+    }
+
     let config = if config_dir.exists() {
         Config::load_from_directory(&config_dir)?
     } else {
@@ -93,6 +100,7 @@ fn read_config() -> Result<Config, Error> {
         );
         info!("Please configure your providers and DNS settings, then run again.");
 
+        //TODO: Handle first run better (signal to caller that config was created)
         Config::default()
     };
 
