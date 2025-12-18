@@ -75,10 +75,7 @@ impl Debug for Error {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Error> {
-    setup_logger()?;
-
+fn read_config() -> Result<Config, Error> {
     let config_dir = dirs::config_dir()
         .ok_or(Error::NoConfigDirectory)?
         .join(APP_NAME);
@@ -99,6 +96,15 @@ async fn main() -> Result<(), Error> {
         Config::default()
     };
 
+    Ok(config)
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Error> {
+    setup_logger()?;
+
+    let config = read_config()?;
     run(config).await?;
+
     Ok(())
 }
