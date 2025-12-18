@@ -4,7 +4,7 @@ use std::fs::{self, File};
 use dnrs::{Config, RuntimeError, run, setup_logger};
 use lum_config::{ConfigPathError, EnvironmentConfigParseError, FileConfigParseError, merge};
 use lum_log::info;
-use lum_log::{error, log::SetLoggerError};
+use lum_log::log::SetLoggerError;
 use thiserror::Error;
 
 /*
@@ -72,10 +72,7 @@ impl Debug for Error {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Error> {
-    setup_logger()?;
-
+fn read_config() -> Result<Config, Error> {
     let config_path = dirs::config_dir()
         .ok_or(Error::NoConfigDirectory)?
         .join(APP_NAME)
@@ -104,7 +101,16 @@ async fn main() -> Result<(), Error> {
         info!("Created default config file at: {}", config_path.display());
     }
 
+    Ok(config)
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Error> {
+    setup_logger()?;
+
+    let config = read_config()?;
     run(config).await?;
+
     Ok(())
 }
 

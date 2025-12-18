@@ -1,7 +1,6 @@
 use std::marker::PhantomData;
 
 use clap::{Parser, Subcommand as ClapSubcommand};
-use lum_log::error;
 use thiserror::Error;
 
 use crate::{
