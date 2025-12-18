@@ -1,9 +1,10 @@
 use std::fmt::{self, Debug};
-use std::fs;
+use std::fs::{self, File};
 
 use dnrs::{Config, RuntimeError, run, setup_logger};
-use lum_config::{ConfigPathError, EnvironmentConfigParseError, FileConfigParseError};
-use lum_log::{info, log::SetLoggerError};
+use lum_config::{ConfigPathError, EnvironmentConfigParseError, FileConfigParseError, merge};
+use lum_log::info;
+use lum_log::log::SetLoggerError;
 use thiserror::Error;
 
 /*
