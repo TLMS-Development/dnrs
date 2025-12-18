@@ -65,7 +65,7 @@ enum Error {
     Runtime(#[from] RuntimeError),
 }
 
-// When main() returns a `Error`, it will be printed using the `Display` implementation
+// When main() returns an `Error`, it will be printed using the `Display` implementation
 impl Debug for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self)
