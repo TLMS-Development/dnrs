@@ -28,7 +28,7 @@ impl<'provider_config> HetznerProvider<'provider_config> {
         let mut headers = HeaderMap::new();
         headers.insert(
             "Auth-API-Token",
-            self.provider_config.api_key.parse().unwrap(),
+            self.provider_config.api_key.parse().expect("Invalid Hetzner API key: contains characters that are not allowed in HTTP headers"),
         );
 
         let url = format!("{}/zones", self.provider_config.api_base_url);
@@ -118,7 +118,7 @@ impl Provider for HetznerProvider<'_> {
         let mut headers = HeaderMap::new();
         headers.insert(
             "Auth-API-Token",
-            self.provider_config.api_key.parse().unwrap(),
+            self.provider_config.api_key.parse().expect("Invalid Hetzner API key: contains characters that are not allowed in HTTP headers"),
         );
 
         let domain = &input.domain;
@@ -143,14 +143,14 @@ impl Provider for HetznerProvider<'_> {
     }
 
     async fn add_record(&self, _reqwest: reqwest::Client, _input: &dns::Record) -> Result<()> {
-        unimplemented!()
+        unimplemented!("Hetzner add_record not yet implemented")
     }
 
     async fn update_record(&self, _reqwest: reqwest::Client, _input: &dns::Record) -> Result<()> {
-        unimplemented!()
+        unimplemented!("Hetzner update_record not yet implemented")
     }
 
     async fn delete_record(&self, _reqwest: reqwest::Client, _input: &dns::Record) -> Result<()> {
-        unimplemented!()
+        unimplemented!("Hetzner delete_record not yet implemented")
     }
 }

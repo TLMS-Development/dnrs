@@ -95,7 +95,7 @@ impl Config {
                         debug!("Loaded Netcup provider config from {:?}", path);
                     }
                     _ => {
-                        error!("Warning: Unknown provider config file: {}", path.display());
+                        error!("Unknown provider config file: {}", path.display());
                     }
                 }
             }
@@ -158,7 +158,7 @@ impl Config {
                     debug!("Loaded Netcup DNS config from {:?}", path);
                 } else {
                     error!(
-                        "Warning: Cannot determine DNS config type for file: {}",
+                        "Cannot determine DNS config type for file: {}",
                         path.display()
                     );
                 }
