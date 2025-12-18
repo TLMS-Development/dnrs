@@ -1,13 +1,17 @@
 use std::marker::PhantomData;
 
 use clap::{Args, Parser};
+use lum_log::{error, info};
 use thiserror::Error;
 
 use crate::{
     Config,
     cli::ExecutableCommand,
     config::provider::Provider as ProviderConfig,
-    provider::{GetAllRecordsInput, GetRecordsInput, Provider, nitrado::NitradoProvider},
+    provider::{
+        GetAllRecordsInput, GetRecordsInput, Provider, hetzner::HetznerProvider,
+        netcup::NetcupProvider, nitrado::NitradoProvider,
+    },
 };
 
 #[derive(Debug)]
@@ -25,15 +29,14 @@ pub enum Error {
     ProviderError(#[from] anyhow::Error),
 }
 
-//TODO: Fix order of usage message (provider should come first)
 #[derive(Debug, Args)]
-#[group(required = true, multiple = false)]
 pub struct SubdomainArgs {
     /// Subdomains to get records for
+    #[clap(display_order = 3)]
     subdomains: Vec<String>,
 
     /// Get all records
-    #[clap(short, long, default_value = "false")]
+    #[clap(short, long, default_value = "false", display_order = 3)]
     pub all: bool,
 }
 
@@ -45,9 +48,11 @@ pub struct Command<'command> {
     _phantom: PhantomData<&'command ()>,
 
     /// Name of the provider to get records from
+    #[clap(display_order = 1)]
     provider: String,
 
     /// Domain to get records for
+    #[clap(display_order = 2)]
     domain: String,
 
     #[command(flatten)]
@@ -59,11 +64,21 @@ fn get_provider<'config>(
     name: &str,
     config: &'config Config,
 ) -> Option<Box<dyn Provider + 'config>> {
-    for provider_file_config in config.providers.iter() {
-        match &provider_file_config.provider {
+    for provider in config.providers.iter() {
+        match provider {
             ProviderConfig::Nitrado(nitrado_config) => {
                 if name == nitrado_config.name {
                     return Some(Box::new(NitradoProvider::new(nitrado_config)));
+                }
+            }
+            ProviderConfig::Hetzner(hetzner_config) => {
+                if name == hetzner_config.name {
+                    return Some(Box::new(HetznerProvider::new(hetzner_config)));
+                }
+            }
+            ProviderConfig::Netcup(netcup_config) => {
+                if name == netcup_config.name {
+                    return Some(Box::new(NetcupProvider::new(netcup_config)));
                 }
             }
         }
@@ -77,6 +92,20 @@ impl<'command> ExecutableCommand<'command> for Command<'command> {
     type R = Result<(), Error>;
 
     async fn execute(&self, input: &'command Self::I) -> Self::R {
+        if self.subdomain_args.all && !self.subdomain_args.subdomains.is_empty() {
+            error!("Cannot specify both --all and specific subdomains");
+            return Err(Error::ProviderError(anyhow::anyhow!(
+                "Cannot specify both --all and specific subdomains"
+            )));
+        }
+
+        if !self.subdomain_args.all && self.subdomain_args.subdomains.is_empty() {
+            error!("Must specify either --all or specific subdomains");
+            return Err(Error::ProviderError(anyhow::anyhow!(
+                "Must specify either --all or specific subdomains"
+            )));
+        }
+
         let config = input.config;
         let provider_name = self.provider.as_str();
 
@@ -109,13 +138,13 @@ impl<'command> ExecutableCommand<'command> for Command<'command> {
 
         let records = match results {
             Err(e) => {
-                eprintln!("Error: {}", e);
+                error!("Error: {}", e);
                 return Err(e.into());
             }
             Ok(records) => records,
         };
 
-        println!("Records: {:#?}", records);
+        info!("Records: {:#?}", records);
         Ok(())
     }
 }

@@ -11,21 +11,14 @@ use crate::types::dns::{self, MxRecord, RecordType, RecordValue};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "lum_libs::serde")]
-pub enum RecordMode {
-    #[serde(rename = "auto")]
-    Auto,
-
-    #[serde(rename = "manual")]
-    Manual,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(crate = "lum_libs::serde")]
 pub struct Record {
+    pub id: Option<String>,
+    pub hostname: String,
     pub r#type: RecordType,
-    pub content: String,
-    pub name: String,
-    pub mode: RecordMode,
+    pub priority: Option<String>,
+    pub destination: String,
+    pub deleterecord: Option<bool>,
+    pub state: Option<String>,
 }
 
 #[derive(Debug, Clone, Error)]
@@ -56,66 +49,72 @@ pub enum TryFromRecordError {
 
     #[error("Invalid CAA record flag: {0}")]
     InvalidCaaFlag(num::ParseIntError),
-
-    #[error("Record type {0:?} is not supported by Nitrado provider")]
-    UnsupportedRecordType(RecordType),
 }
 
 impl TryFrom<Record> for dns::Record {
     type Error = TryFromRecordError;
 
-    fn try_from(api_record: Record) -> std::result::Result<Self, Self::Error> {
+    fn try_from(api_record: Record) -> Result<Self, Self::Error> {
         let value = match api_record.r#type {
             RecordType::A => {
-                let ip = Ipv4Addr::from_str(&api_record.content)?;
+                let ip = Ipv4Addr::from_str(&api_record.destination)?;
                 RecordValue::A(ip)
             }
             RecordType::AAAA => {
-                let ip = Ipv6Addr::from_str(&api_record.content)?;
+                let ip = Ipv6Addr::from_str(&api_record.destination)?;
                 RecordValue::AAAA(ip)
             }
-            RecordType::CNAME => RecordValue::CNAME(api_record.content),
-            RecordType::TXT => RecordValue::TXT(api_record.content),
-            RecordType::SPF => RecordValue::SPF(api_record.content),
-            RecordType::NS | RecordType::SOA => {
-                return Err(TryFromRecordError::UnsupportedRecordType(api_record.r#type));
-            }
+            RecordType::CNAME => RecordValue::CNAME(api_record.destination),
+            RecordType::TXT => RecordValue::TXT(api_record.destination),
+            RecordType::SPF => RecordValue::SPF(api_record.destination),
+            RecordType::NS => RecordValue::NS(api_record.destination),
+            RecordType::SOA => RecordValue::SOA(api_record.destination),
             RecordType::MX => {
-                let content = api_record.content;
-                let parts: Vec<&str> = content.split_whitespace().collect();
-                if parts.len() != 2 {
-                    return Err(TryFromRecordError::InvalidMxFormat(content));
-                }
-
-                let priority = parts[0]
+                let priority = api_record
+                    .priority
+                    .ok_or_else(|| {
+                        TryFromRecordError::InvalidMxFormat(
+                            "MX record missing priority".to_string(),
+                        )
+                    })?
                     .parse::<u16>()
                     .map_err(TryFromRecordError::InvalidMxPriority)?;
 
-                let target = parts[1].to_string();
-                RecordValue::MX(MxRecord { priority, target })
+                RecordValue::MX(MxRecord {
+                    priority,
+                    target: api_record.destination,
+                })
             }
             RecordType::SRV => {
-                let content = api_record.content;
+                let content = api_record.destination;
                 let parts: Vec<&str> = content.split_whitespace().collect();
-                if parts.len() != 4 {
+
+                if parts.len() == 3 {
+                    let priority = api_record
+                        .priority
+                        .ok_or_else(|| {
+                            TryFromRecordError::InvalidSrvFormat(
+                                "SRV record missing priority".to_string(),
+                            )
+                        })?
+                        .parse::<u16>()
+                        .map_err(TryFromRecordError::InvalidSrvValue)?;
+
+                    let weight = parts[0]
+                        .parse::<u16>()
+                        .map_err(TryFromRecordError::InvalidSrvValue)?;
+                    let port = parts[1]
+                        .parse::<u16>()
+                        .map_err(TryFromRecordError::InvalidSrvValue)?;
+                    let target = parts[2].to_string();
+
+                    RecordValue::SRV(priority, weight, port, target)
+                } else {
                     return Err(TryFromRecordError::InvalidSrvFormat(content));
                 }
-
-                let priority = parts[0]
-                    .parse::<u16>()
-                    .map_err(TryFromRecordError::InvalidSrvValue)?;
-                let weight = parts[1]
-                    .parse::<u16>()
-                    .map_err(TryFromRecordError::InvalidSrvValue)?;
-                let port = parts[2]
-                    .parse::<u16>()
-                    .map_err(TryFromRecordError::InvalidSrvValue)?;
-
-                let target = parts[3].to_string();
-                RecordValue::SRV(priority, weight, port, target)
             }
             RecordType::TLSA => {
-                let content = api_record.content;
+                let content = api_record.destination;
                 let parts: Vec<&str> = content.split_whitespace().collect();
                 if parts.len() != 4 {
                     return Err(TryFromRecordError::InvalidTlsaFormat(content));
@@ -130,12 +129,12 @@ impl TryFrom<Record> for dns::Record {
                 let matching_type = parts[2]
                     .parse::<u16>()
                     .map_err(TryFromRecordError::InvalidTlsaValue)?;
-
                 let cert_data = parts[3].to_string();
+
                 RecordValue::TLSA(usage, selector, matching_type, cert_data)
             }
             RecordType::CAA => {
-                let content = api_record.content;
+                let content = api_record.destination;
                 let parts: Vec<&str> = content.split_whitespace().collect();
                 if parts.len() != 3 {
                     return Err(TryFromRecordError::InvalidCaaFormat(content));
@@ -144,17 +143,17 @@ impl TryFrom<Record> for dns::Record {
                 let flag = parts[0]
                     .parse::<u8>()
                     .map_err(TryFromRecordError::InvalidCaaFlag)?;
-
                 let tag = parts[1].to_string();
                 let value = parts[2].to_string();
+
                 RecordValue::CAA(flag, tag, value)
             }
         };
 
         Ok(dns::Record {
-            domain: api_record.name,
+            domain: api_record.hostname,
             value,
-            ttl: None, // Nitrado API does not provide TTL on GET
+            ttl: None,
         })
     }
 }
@@ -162,16 +161,15 @@ impl TryFrom<Record> for dns::Record {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "lum_libs::serde")]
 pub struct GetRecordsResponse {
-    pub status: String,
-    pub message: Vec<Record>,
+    pub records: Vec<Record>,
 }
 
 impl TryFrom<GetRecordsResponse> for Vec<dns::Record> {
     type Error = TryFromRecordError;
 
-    fn try_from(response: GetRecordsResponse) -> std::result::Result<Self, Self::Error> {
+    fn try_from(response: GetRecordsResponse) -> Result<Self, Self::Error> {
         response
-            .message
+            .records
             .into_iter()
             .map(dns::Record::try_from)
             .collect()

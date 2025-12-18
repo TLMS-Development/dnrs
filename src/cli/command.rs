@@ -5,7 +5,7 @@ use thiserror::Error;
 
 use crate::{
     Config,
-    cli::{ExecutableCommand, auto, get},
+    cli::{ExecutableCommand, auto, generate_config, get},
 };
 
 #[derive(Debug, ClapSubcommand)]
@@ -13,6 +13,7 @@ use crate::{
 pub enum Subcommand<'a> {
     Auto(auto::Command<'a>),
     Get(get::Command<'a>),
+    GenerateConfig(generate_config::Command<'a>),
 }
 
 #[derive(Debug)]
@@ -27,6 +28,9 @@ pub enum Error {
 
     #[error("Failed to execute get subcommand: {0}")]
     Get(#[from] get::Error),
+
+    #[error("Failed to execute generate-config subcommand: {0}")]
+    GenerateConfig(#[from] generate_config::Error),
 }
 
 /// dnrs
@@ -60,6 +64,10 @@ impl<'command> ExecutableCommand<'command> for Command<'command> {
             }
             Subcommand::Get(subcommand) => {
                 let input = get::Input { config, reqwest };
+                subcommand.execute(&input).await?;
+            }
+            Subcommand::GenerateConfig(subcommand) => {
+                let input = generate_config::Input { config };
                 subcommand.execute(&input).await?;
             }
         }

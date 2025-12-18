@@ -1,0 +1,6 @@
+ipv4:
+  url: https://ip.cancom.io
+  type: Raw
+ipv6:
+  url: https://ipv6.cancom.io
+  type: Raw

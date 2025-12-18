@@ -6,16 +6,20 @@ use crate::config::dns::RecordConfig;
 #[serde(crate = "lum_libs::serde")]
 pub struct Config {
     pub name: String,
+    pub customer_number: u32,
     pub api_key: String,
+    pub api_password: String,
     pub api_base_url: String,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Config {
-            name: "Nitrado1".to_string(),
+            name: "Netcup1".to_string(),
+            customer_number: 0,
             api_key: "your_api_key".to_string(),
-            api_base_url: "https://api.nitrado.net".to_string(),
+            api_password: "your_api_password".to_string(),
+            api_base_url: "https://ccp.netcup.net/run/webservice/servers/endpoint.php".to_string(),
         }
     }
 }
@@ -37,7 +41,7 @@ pub struct DnsConfig {
 impl Default for DnsConfig {
     fn default() -> Self {
         DnsConfig {
-            provider_name: "Nitrado1".to_string(),
+            provider_name: "Netcup1".to_string(),
             domains: vec![],
         }
     }

@@ -13,9 +13,9 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Config {
-            name: "Nitrado1".to_string(),
+            name: "Hetzner1".to_string(),
             api_key: "your_api_key".to_string(),
-            api_base_url: "https://api.nitrado.net".to_string(),
+            api_base_url: "https://dns.hetzner.com/api/v1".to_string(),
         }
     }
 }
@@ -37,7 +37,7 @@ pub struct DnsConfig {
 impl Default for DnsConfig {
     fn default() -> Self {
         DnsConfig {
-            provider_name: "Nitrado1".to_string(),
+            provider_name: "Hetzner1".to_string(),
             domains: vec![],
         }
     }
