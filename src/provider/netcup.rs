@@ -4,7 +4,7 @@ use lum_libs::serde_json;
 use thiserror::Error;
 
 use crate::{
-    provider::{Feature, GetAllRecordsInput, GetRecordsInput, Provider},
+    provider::{Feature, GetAllRecordsInput, Provider},
     types::dns::{self},
 };
 
@@ -55,23 +55,6 @@ impl Provider for NetcupProvider<'_> {
         ]
     }
 
-    async fn get_records(
-        &self,
-        reqwest: reqwest::Client,
-        input: &GetRecordsInput,
-    ) -> Result<Vec<dns::Record>> {
-        let get_all_records_input = GetAllRecordsInput::from(input);
-        let records = self
-            .get_all_records(reqwest, &get_all_records_input)
-            .await?;
-
-        let filtered_records = records
-            .into_iter()
-            .filter(|record| input.subdomains.contains(&record.domain.as_str()))
-            .collect::<Vec<_>>();
-
-        Ok(filtered_records)
-    }
 
     async fn get_all_records(
         &self,

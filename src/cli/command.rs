@@ -75,3 +75,39 @@ impl<'command> ExecutableCommand<'command> for Command<'command> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use clap::Parser;
+
+    #[test]
+    fn test_parse_auto_command() {
+        let args = vec!["dnrs", "auto"];
+        let command = Command::try_parse_from(args).unwrap();
+        match command.subcommand {
+            Subcommand::Auto(_) => (),
+            _ => panic!("Expected Auto subcommand"),
+        }
+    }
+
+    #[test]
+    fn test_parse_get_command() {
+        let args = vec!["dnrs", "get", "nitrado", "example.com"];
+        let command = Command::try_parse_from(args).unwrap();
+        match command.subcommand {
+            Subcommand::Get(_) => (),
+            _ => panic!("Expected Get subcommand"),
+        }
+    }
+
+    #[test]
+    fn test_parse_generate_config_command() {
+        let args = vec!["dnrs", "generate-config"];
+        let command = Command::try_parse_from(args).unwrap();
+        match command.subcommand {
+            Subcommand::GenerateConfig(_) => (),
+            _ => panic!("Expected GenerateConfig subcommand"),
+        }
+    }
+}

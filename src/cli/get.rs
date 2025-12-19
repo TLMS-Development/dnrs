@@ -148,3 +148,52 @@ impl<'command> ExecutableCommand<'command> for Command<'command> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::provider::{hetzner, netcup, nitrado};
+
+    #[test]
+    fn test_get_provider_nitrado() {
+        let mut config = Config::default();
+        config.providers = vec![ProviderConfig::Nitrado(nitrado::Config {
+            name: "TestNitrado".to_string(),
+            ..Default::default()
+        })];
+
+        let provider = get_provider("TestNitrado", &config).unwrap();
+        assert_eq!(provider.get_provider_name(), "Nitrado");
+    }
+
+    #[test]
+    fn test_get_provider_hetzner() {
+        let mut config = Config::default();
+        config.providers = vec![ProviderConfig::Hetzner(hetzner::Config {
+            name: "TestHetzner".to_string(),
+            ..Default::default()
+        })];
+
+        let provider = get_provider("TestHetzner", &config).unwrap();
+        assert_eq!(provider.get_provider_name(), "Hetzner");
+    }
+
+    #[test]
+    fn test_get_provider_netcup() {
+        let mut config = Config::default();
+        config.providers = vec![ProviderConfig::Netcup(netcup::Config {
+            name: "TestNetcup".to_string(),
+            ..Default::default()
+        })];
+
+        let provider = get_provider("TestNetcup", &config).unwrap();
+        assert_eq!(provider.get_provider_name(), "Netcup");
+    }
+
+    #[test]
+    fn test_get_provider_not_found() {
+        let config = Config::default();
+        let provider = get_provider("NonExistent", &config);
+        assert!(provider.is_none());
+    }
+}

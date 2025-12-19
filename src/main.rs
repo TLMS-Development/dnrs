@@ -1,7 +1,7 @@
 use std::fmt::{self, Debug};
 use std::fs;
 
-use dnrs::{Config, RuntimeError, config, run, setup_logger};
+use dnrs::{Config, RuntimeError, run, setup_logger};
 use lum_config::{ConfigPathError, EnvironmentConfigParseError, FileConfigParseError};
 use lum_log::{info, log::SetLoggerError};
 use thiserror::Error;

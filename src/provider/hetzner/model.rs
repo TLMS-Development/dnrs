@@ -52,10 +52,38 @@ pub enum TryFromRecordError {
     InvalidCaaFlag(num::ParseIntError),
 }
 
+/// Converts a Hetzner API record into the internal [`dns::Record`] type.
+///
+/// # Examples
+///
+/// ```
+/// use dnrs::provider::hetzner::model::Record;
+/// use dnrs::types::dns::{RecordType, RecordValue};
+/// use std::convert::TryFrom;
+///
+/// let api_record = Record {
+///     r#type: RecordType::A,
+///     id: "1".to_string(),
+///     created: "2023-01-01".to_string(),
+///     modified: "2023-01-01".to_string(),
+///     zone_id: "zone1".to_string(),
+///     name: "example.com".to_string(),
+///     value: "1.2.3.4".to_string(),
+///     ttl: Some(3600),
+/// };
+///
+/// let dns_record = dnrs::types::dns::Record::try_from(api_record).unwrap();
+/// assert_eq!(dns_record.domain, "example.com");
+/// if let RecordValue::A(ip) = dns_record.value {
+///     assert_eq!(ip.to_string(), "1.2.3.4");
+/// } else {
+///     panic!("Expected A record");
+/// }
+/// ```
 impl TryFrom<Record> for dns::Record {
     type Error = TryFromRecordError;
 
-    fn try_from(api_record: Record) -> std::result::Result<Self, Self::Error> {
+    fn try_from(api_record: Record) -> Result<Self, Self::Error> {
         let value = match api_record.r#type {
             RecordType::A => {
                 let ip = Ipv4Addr::from_str(&api_record.value)?;
@@ -149,6 +177,57 @@ impl TryFrom<Record> for dns::Record {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::dns::RecordType;
+
+    #[test]
+    fn test_hetzner_record_to_dns_record_a() {
+        let api_record = Record {
+            r#type: RecordType::A,
+            id: "1".to_string(),
+            created: "2023-01-01".to_string(),
+            modified: "2023-01-01".to_string(),
+            zone_id: "zone1".to_string(),
+            name: "example.com".to_string(),
+            value: "1.2.3.4".to_string(),
+            ttl: Some(3600),
+        };
+
+        let dns_record = dns::Record::try_from(api_record).unwrap();
+        assert_eq!(dns_record.domain, "example.com");
+        assert_eq!(dns_record.ttl, Some(3600));
+        if let RecordValue::A(ip) = dns_record.value {
+            assert_eq!(ip.to_string(), "1.2.3.4");
+        } else {
+            panic!("Expected A record");
+        }
+    }
+
+    #[test]
+    fn test_hetzner_record_to_dns_record_mx() {
+        let api_record = Record {
+            r#type: RecordType::MX,
+            id: "2".to_string(),
+            created: "2023-01-01".to_string(),
+            modified: "2023-01-01".to_string(),
+            zone_id: "zone1".to_string(),
+            name: "example.com".to_string(),
+            value: "10 mail.example.com".to_string(),
+            ttl: None,
+        };
+
+        let dns_record = dns::Record::try_from(api_record).unwrap();
+        if let RecordValue::MX(mx) = dns_record.value {
+            assert_eq!(mx.priority, 10);
+            assert_eq!(mx.target, "mail.example.com");
+        } else {
+            panic!("Expected MX record");
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "lum_libs::serde")]
 pub struct GetRecordsResponse {
@@ -158,7 +237,7 @@ pub struct GetRecordsResponse {
 impl TryFrom<GetRecordsResponse> for Vec<dns::Record> {
     type Error = TryFromRecordError;
 
-    fn try_from(response: GetRecordsResponse) -> std::result::Result<Self, Self::Error> {
+    fn try_from(response: GetRecordsResponse) -> Result<Self, Self::Error> {
         response
             .records
             .into_iter()

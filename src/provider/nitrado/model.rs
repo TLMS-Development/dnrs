@@ -61,10 +61,34 @@ pub enum TryFromRecordError {
     UnsupportedRecordType(RecordType),
 }
 
+/// Converts a Nitrado API record into the internal [`dns::Record`] type.
+///
+/// # Examples
+///
+/// ```
+/// use dnrs::provider::nitrado::model::{Record, RecordMode};
+/// use dnrs::types::dns::{RecordType, RecordValue};
+/// use std::convert::TryFrom;
+///
+/// let api_record = Record {
+///     r#type: RecordType::A,
+///     content: "1.2.3.4".to_string(),
+///     name: "example.com".to_string(),
+///     mode: RecordMode::Manual,
+/// };
+///
+/// let dns_record = dnrs::types::dns::Record::try_from(api_record).unwrap();
+/// assert_eq!(dns_record.domain, "example.com");
+/// if let RecordValue::A(ip) = dns_record.value {
+///     assert_eq!(ip.to_string(), "1.2.3.4");
+/// } else {
+///     panic!("Expected A record");
+/// }
+/// ```
 impl TryFrom<Record> for dns::Record {
     type Error = TryFromRecordError;
 
-    fn try_from(api_record: Record) -> std::result::Result<Self, Self::Error> {
+    fn try_from(api_record: Record) -> Result<Self, Self::Error> {
         let value = match api_record.r#type {
             RecordType::A => {
                 let ip = Ipv4Addr::from_str(&api_record.content)?;
@@ -169,11 +193,110 @@ pub struct GetRecordsResponse {
 impl TryFrom<GetRecordsResponse> for Vec<dns::Record> {
     type Error = TryFromRecordError;
 
-    fn try_from(response: GetRecordsResponse) -> std::result::Result<Self, Self::Error> {
+    fn try_from(response: GetRecordsResponse) -> Result<Self, Self::Error> {
         response
             .message
             .into_iter()
             .map(dns::Record::try_from)
             .collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::dns::{RecordValue, RecordType};
+
+    #[test]
+    fn test_nitrado_record_to_dns_record_a() {
+        let api_record = Record {
+            r#type: RecordType::A,
+            content: "1.2.3.4".to_string(),
+            name: "example.com".to_string(),
+            mode: RecordMode::Manual,
+        };
+        let dns_record = dns::Record::try_from(api_record).unwrap();
+        assert_eq!(dns_record.domain, "example.com");
+        match dns_record.value {
+            RecordValue::A(ip) => assert_eq!(ip.to_string(), "1.2.3.4"),
+            _ => panic!("Expected A record"),
+        }
+    }
+
+    #[test]
+    fn test_nitrado_record_to_dns_record_aaaa() {
+        let api_record = Record {
+            r#type: RecordType::AAAA,
+            content: "::1".to_string(),
+            name: "example.com".to_string(),
+            mode: RecordMode::Manual,
+        };
+        let dns_record = dns::Record::try_from(api_record).unwrap();
+        match dns_record.value {
+            RecordValue::AAAA(ip) => assert_eq!(ip.to_string(), "::1"),
+            _ => panic!("Expected AAAA record"),
+        }
+    }
+
+    #[test]
+    fn test_nitrado_record_to_dns_record_mx() {
+        let api_record = Record {
+            r#type: RecordType::MX,
+            content: "10 mail.example.com".to_string(),
+            name: "example.com".to_string(),
+            mode: RecordMode::Manual,
+        };
+        let dns_record = dns::Record::try_from(api_record).unwrap();
+        match dns_record.value {
+            RecordValue::MX(mx) => {
+                assert_eq!(mx.priority, 10);
+                assert_eq!(mx.target, "mail.example.com");
+            }
+            _ => panic!("Expected MX record"),
+        }
+    }
+
+    #[test]
+    fn test_nitrado_record_to_dns_record_srv() {
+        let api_record = Record {
+            r#type: RecordType::SRV,
+            content: "0 5 5060 sip.example.com".to_string(),
+            name: "_sip._tcp.example.com".to_string(),
+            mode: RecordMode::Manual,
+        };
+        let dns_record = dns::Record::try_from(api_record).unwrap();
+        match dns_record.value {
+            RecordValue::SRV(priority, weight, port, target) => {
+                assert_eq!(priority, 0);
+                assert_eq!(weight, 5);
+                assert_eq!(port, 5060);
+                assert_eq!(target, "sip.example.com");
+            }
+            _ => panic!("Expected SRV record"),
+        }
+    }
+
+    #[test]
+    fn test_nitrado_record_to_dns_record_invalid_ip() {
+        let api_record = Record {
+            r#type: RecordType::A,
+            content: "invalid".to_string(),
+            name: "example.com".to_string(),
+            mode: RecordMode::Manual,
+        };
+        let result = dns::Record::try_from(api_record);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_nitrado_record_to_dns_record_unsupported() {
+        let api_record = Record {
+            r#type: RecordType::NS,
+            content: "ns1.example.com".to_string(),
+            name: "example.com".to_string(),
+            mode: RecordMode::Manual,
+        };
+        let result = dns::Record::try_from(api_record);
+        assert!(matches!(result, Err(TryFromRecordError::UnsupportedRecordType(RecordType::NS))));
     }
 }

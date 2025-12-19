@@ -18,6 +18,22 @@ pub enum RecordConfig {
     Automatic(AutomaticRecordConfig),
 }
 
+/// Configuration for an automatically updated DNS record.
+///
+/// # Examples
+///
+/// ```
+/// use dnrs::config::dns::{AutomaticRecordConfig, ResolveType};
+///
+/// let config = AutomaticRecordConfig {
+///     domain: "home.example.com".to_string(),
+///     ttl: Some(300),
+///     resolve_type: ResolveType::IPv4,
+/// };
+///
+/// assert_eq!(config.domain, "home.example.com");
+/// assert_eq!(config.ttl, Some(300));
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "lum_libs::serde")]
 pub struct AutomaticRecordConfig {

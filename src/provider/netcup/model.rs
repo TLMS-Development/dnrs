@@ -51,6 +51,33 @@ pub enum TryFromRecordError {
     InvalidCaaFlag(num::ParseIntError),
 }
 
+/// Converts a Netcup API record into the internal [`dns::Record`] type.
+///
+/// # Examples
+///
+/// ```
+/// use dnrs::provider::netcup::model::Record;
+/// use dnrs::types::dns::{RecordType, RecordValue};
+/// use std::convert::TryFrom;
+///
+/// let api_record = Record {
+///     id: Some("1".to_string()),
+///     hostname: "example.com".to_string(),
+///     r#type: RecordType::A,
+///     priority: None,
+///     destination: "1.2.3.4".to_string(),
+///     deleterecord: None,
+///     state: None,
+/// };
+///
+/// let dns_record = dnrs::types::dns::Record::try_from(api_record).unwrap();
+/// assert_eq!(dns_record.domain, "example.com");
+/// if let RecordValue::A(ip) = dns_record.value {
+///     assert_eq!(ip.to_string(), "1.2.3.4");
+/// } else {
+///     panic!("Expected A record");
+/// }
+/// ```
 impl TryFrom<Record> for dns::Record {
     type Error = TryFromRecordError;
 
@@ -155,6 +182,54 @@ impl TryFrom<Record> for dns::Record {
             value,
             ttl: None,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::dns::RecordType;
+
+    #[test]
+    fn test_netcup_record_to_dns_record_a() {
+        let api_record = Record {
+            id: Some("1".to_string()),
+            hostname: "example.com".to_string(),
+            r#type: RecordType::A,
+            priority: None,
+            destination: "1.2.3.4".to_string(),
+            deleterecord: None,
+            state: None,
+        };
+
+        let dns_record = dns::Record::try_from(api_record).unwrap();
+        assert_eq!(dns_record.domain, "example.com");
+        if let RecordValue::A(ip) = dns_record.value {
+            assert_eq!(ip.to_string(), "1.2.3.4");
+        } else {
+            panic!("Expected A record");
+        }
+    }
+
+    #[test]
+    fn test_netcup_record_to_dns_record_mx() {
+        let api_record = Record {
+            id: Some("2".to_string()),
+            hostname: "example.com".to_string(),
+            r#type: RecordType::MX,
+            priority: Some("10".to_string()),
+            destination: "mail.example.com".to_string(),
+            deleterecord: None,
+            state: None,
+        };
+
+        let dns_record = dns::Record::try_from(api_record).unwrap();
+        if let RecordValue::MX(mx) = dns_record.value {
+            assert_eq!(mx.priority, 10);
+            assert_eq!(mx.target, "mail.example.com");
+        } else {
+            panic!("Expected MX record");
+        }
     }
 }
 

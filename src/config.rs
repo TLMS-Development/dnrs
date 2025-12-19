@@ -14,6 +14,10 @@ pub mod dns;
 pub mod provider;
 pub mod resolver;
 
+/// Configuration for the dnrs application.
+///
+/// This struct holds all the configuration required to run the application,
+/// including IP resolver settings, provider credentials, and DNS record definitions.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "lum_libs::serde")]
 #[serde(default)]
@@ -61,9 +65,9 @@ impl Config {
                 providers_dir
             );
             return Ok(vec![
-                Provider::Nitrado(crate::provider::nitrado::Config::default()),
-                Provider::Hetzner(crate::provider::hetzner::Config::default()),
-                Provider::Netcup(crate::provider::netcup::Config::default()),
+                Provider::Nitrado(nitrado::Config::default()),
+                Provider::Hetzner(hetzner::Config::default()),
+                Provider::Netcup(netcup::Config::default()),
             ]);
         }
 
@@ -220,20 +224,143 @@ impl Default for Config {
         Config {
             resolver: resolver::Config::default(),
             providers: vec![
-                provider::Provider::Nitrado(crate::provider::nitrado::Config::default()),
-                provider::Provider::Hetzner(crate::provider::hetzner::Config::default()),
-                provider::Provider::Netcup(crate::provider::netcup::Config::default()),
+                Provider::Nitrado(nitrado::Config::default()),
+                Provider::Hetzner(hetzner::Config::default()),
+                Provider::Netcup(netcup::Config::default()),
             ],
             dns: vec![
-                dns::Type::Nitrado(crate::provider::nitrado::DnsConfig::default()),
-                dns::Type::Hetzner(crate::provider::hetzner::DnsConfig::default()),
-                dns::Type::Netcup(crate::provider::netcup::DnsConfig::default()),
+                dns::Type::Nitrado(nitrado::DnsConfig::default()),
+                dns::Type::Hetzner(hetzner::DnsConfig::default()),
+                dns::Type::Netcup(netcup::DnsConfig::default()),
             ],
         }
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_config_merge_from_empty() {
+        let default_config = Config::default();
+        let other = Config {
+            resolver: resolver::Config {
+                ipv4: resolver::IpResolver {
+                    url: "https://new.ipv4.com".to_string(),
+                    type_: resolver::IpResolverType::Raw,
+                },
+                ipv6: resolver::IpResolver {
+                    url: "https://new.ipv6.com".to_string(),
+                    type_: resolver::IpResolverType::Raw,
+                },
+            },
+            providers: vec![],
+            dns: vec![],
+        };
+
+        let merged = default_config.clone().merge_from(other.clone());
+
+        assert_eq!(merged.resolver.ipv4.url, "https://new.ipv4.com");
+        assert_eq!(merged.providers.len(), default_config.providers.len());
+        assert_eq!(merged.dns.len(), default_config.dns.len());
+    }
+
+    #[test]
+    fn test_config_merge_from_not_empty() {
+        let default_config = Config::default();
+        let other = Config {
+            resolver: resolver::Config::default(),
+            providers: vec![Provider::Nitrado(
+                nitrado::Config {
+                    name: "OtherNitrado".to_string(),
+                    ..Default::default()
+                },
+            )],
+            dns: vec![],
+        };
+
+        let merged = default_config.clone().merge_from(other.clone());
+
+        assert_eq!(merged.providers.len(), 1);
+        if let Provider::Nitrado(config) = &merged.providers[0] {
+            assert_eq!(config.name, "OtherNitrado");
+        } else {
+            panic!("Expected Nitrado provider");
+        }
+        assert_eq!(merged.dns.len(), default_config.dns.len());
+    }
+
+    #[test]
+    fn test_config_default() {
+        let config = Config::default();
+        assert!(!config.providers.is_empty());
+        assert!(!config.dns.is_empty());
+    }
+
+    #[test]
+    fn test_load_from_directory() {
+        let temp_dir = std::env::temp_dir().join("dnrs_load_test");
+        if temp_dir.exists() {
+            fs::remove_dir_all(&temp_dir).unwrap();
+        }
+        fs::create_dir_all(&temp_dir).unwrap();
+
+        Config::create_example_structure(&temp_dir).unwrap();
+
+        let config = Config::load_from_directory(&temp_dir).unwrap();
+        assert_eq!(config.providers.len(), 3);
+        assert_eq!(config.dns.len(), 3);
+
+        fs::remove_dir_all(&temp_dir).unwrap();
+    }
+
+    #[test]
+    fn test_load_from_directory_missing() {
+        let temp_dir = std::env::temp_dir().join("dnrs_missing_test");
+        if temp_dir.exists() {
+            fs::remove_dir_all(&temp_dir).unwrap();
+        }
+
+        let config = Config::load_from_directory(&temp_dir).unwrap();
+        assert!(!config.providers.is_empty());
+    }
+
+    #[test]
+    fn test_load_from_directory_invalid_yaml() {
+        let temp_dir = std::env::temp_dir().join("dnrs_invalid_yaml_test");
+        if temp_dir.exists() {
+            fs::remove_dir_all(&temp_dir).unwrap();
+        }
+        fs::create_dir_all(temp_dir.join("providers")).unwrap();
+
+        fs::write(temp_dir.join("providers/nitrado.yaml"), "invalid: yaml: :").unwrap();
+
+        let result = Config::load_from_directory(&temp_dir);
+        assert!(result.is_err());
+
+        fs::remove_dir_all(&temp_dir).unwrap();
+    }
+}
+
 impl MergeFrom<Self> for Config {
+    /// Merges another configuration into this one.
+    ///
+    /// Values from `other` will override values in `self`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use dnrs::Config;
+    /// use lum_config::MergeFrom;
+    ///
+    /// let mut config = Config::default();
+    /// let mut other = Config::default();
+    /// other.resolver.ipv4.url = "https://example.com".to_string();
+    ///
+    /// let merged = config.merge_from(other);
+    /// assert_eq!(merged.resolver.ipv4.url, "https://example.com");
+    /// ```
     fn merge_from(self, other: Self) -> Self {
         Self {
             resolver: other.resolver,

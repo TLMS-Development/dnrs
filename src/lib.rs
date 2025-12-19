@@ -12,6 +12,9 @@ pub mod provider;
 pub mod resolver;
 pub mod types;
 
+#[cfg(test)]
+mod cli_tests;
+
 pub use config::Config;
 pub use logger::setup_logger;
 
