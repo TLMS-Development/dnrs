@@ -14,7 +14,7 @@ opt-level = 0
 lto = false
 
 [dependencies]
-anyhow = "1.0.99"
+anyhow = "1.0.100"
 async-trait = "0.1.89"
 clap = { version = "4.5.39", features = ["derive", "unicode", "wrap_help"] }
 dirs = "6.0.0"
