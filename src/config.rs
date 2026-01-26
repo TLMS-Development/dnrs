@@ -1,9 +1,8 @@
-//TODO: No anyhow
-use anyhow::Result;
 use lum_config::MergeFrom;
 use lum_libs::serde::{Deserialize, Serialize};
-use lum_log::{debug, error, info};
-use std::{fs, path::Path};
+use lum_log::{debug, info};
+use std::{fs, io, path::Path};
+use thiserror::Error;
 
 use crate::{
     config::provider::Provider,
@@ -13,6 +12,22 @@ use crate::{
 pub mod dns;
 pub mod provider;
 pub mod resolver;
+
+/// Error type for configuration loading and parsing.
+#[derive(Debug, Error)]
+pub enum ConfigError {
+    #[error("IO error: {0}")]
+    Io(#[from] io::Error),
+
+    #[error("YAML parsing error: {0}")]
+    Yaml(#[from] serde_yaml_ng::Error),
+
+    #[error("Unknown provider config file: {0}")]
+    UnknownProvider(String),
+
+    #[error("Cannot determine DNS config type for file: {0}")]
+    UnknownDnsType(String),
+}
 
 /// Configuration for the dnrs application.
 ///
@@ -28,7 +43,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn load_from_directory(config_dir: impl AsRef<Path>) -> Result<Self> {
+    pub fn load_from_directory(config_dir: impl AsRef<Path>) -> Result<Self, ConfigError> {
         let config_dir = config_dir.as_ref();
         let resolver = Self::load_resolver_config(config_dir)?;
         let providers = Self::load_provider_configs(&config_dir.join("providers"))?;
@@ -44,7 +59,7 @@ impl Config {
         Ok(default_config.merge_from(loaded_config))
     }
 
-    fn load_resolver_config(config_dir: impl AsRef<Path>) -> Result<resolver::Config> {
+    fn load_resolver_config(config_dir: impl AsRef<Path>) -> Result<resolver::Config, ConfigError> {
         let resolver_path = config_dir.as_ref().join("resolver.yaml");
 
         //TODO: Fail with error if resolver config is missing
@@ -56,7 +71,7 @@ impl Config {
         }
     }
 
-    fn load_provider_configs(providers_dir: impl AsRef<Path>) -> Result<Vec<Provider>> {
+    fn load_provider_configs(providers_dir: impl AsRef<Path>) -> Result<Vec<Provider>, ConfigError> {
         let providers_dir = providers_dir.as_ref();
         //TODO: Fail with error if providers config is missing
         if !providers_dir.exists() {
@@ -105,7 +120,7 @@ impl Config {
                         debug!("Loaded Netcup provider config from {:?}", path);
                     }
                     _ => {
-                        error!("Unknown provider config file: {}", path.display());
+                        return Err(ConfigError::UnknownProvider(path.display().to_string()));
                     }
                 }
             }
@@ -120,7 +135,7 @@ impl Config {
         Ok(configs)
     }
 
-    fn load_dns_configs(dns_dir: impl AsRef<Path>) -> Result<Vec<dns::Type>> {
+    fn load_dns_configs(dns_dir: impl AsRef<Path>) -> Result<Vec<dns::Type>, ConfigError> {
         let dns_dir = dns_dir.as_ref();
 
         //TODO: Fail with error if dns config is missing
@@ -162,10 +177,7 @@ impl Config {
                     configs.push(dns::Type::Netcup(config));
                     debug!("Loaded Netcup DNS config from {:?}", path);
                 } else {
-                    error!(
-                        "Cannot determine DNS config type for file: {}",
-                        path.display()
-                    );
+                    return Err(ConfigError::UnknownDnsType(path.display().to_string()));
                 }
             }
         }
@@ -174,7 +186,7 @@ impl Config {
         Ok(configs)
     }
 
-    pub fn create_example_structure(config_dir: impl AsRef<Path>) -> Result<()> {
+    pub fn create_example_structure(config_dir: impl AsRef<Path>) -> Result<(), ConfigError> {
         let config_dir = config_dir.as_ref();
 
         fs::create_dir_all(config_dir.join("providers"))?;

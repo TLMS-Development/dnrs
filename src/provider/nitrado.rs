@@ -1,11 +1,10 @@
-use anyhow::Result;
 use async_trait::async_trait;
 use lum_libs::serde_json;
 use reqwest::header::HeaderMap;
 use thiserror::Error;
 
 use crate::{
-    provider::{Feature, GetAllRecordsInput, Provider},
+    provider::{Feature, GetAllRecordsInput, Provider, ProviderError},
     types::dns::{self},
 };
 
@@ -35,6 +34,9 @@ pub enum Error {
 
     #[error("JSON parsing error: {0}")]
     Json(#[from] serde_json::Error),
+
+    #[error("Record conversion error: {0}")]
+    RecordConversion(#[from] TryFromRecordError),
 }
 
 #[async_trait]
@@ -57,7 +59,7 @@ impl Provider for NitradoProvider<'_> {
         &self,
         reqwest: reqwest::Client,
         input: &GetAllRecordsInput,
-    ) -> Result<Vec<dns::Record>> {
+    ) -> Result<Vec<dns::Record>, ProviderError> {
         let mut headers = HeaderMap::new();
         headers.insert(
             "Authorization",
@@ -71,28 +73,28 @@ impl Provider for NitradoProvider<'_> {
             "{}/domain/{}/records",
             self.provider_config.api_base_url, domain
         );
-        let response = reqwest.get(&url).headers(headers).send().await?;
+        let response = reqwest.get(&url).headers(headers).send().await.map_err(ProviderError::Http)?;
 
         if !response.status().is_success() {
-            return Err(Error::Unsuccessful(response.status().as_u16(), response).into());
+            return Err(ProviderError::Nitrado(Error::Unsuccessful(response.status().as_u16(), response)));
         }
 
-        let text = response.text().await?;
-        let response: GetRecordsResponse = serde_json::from_str(&text)?;
-        let records: Vec<dns::Record> = response.try_into()?;
+        let text = response.text().await.map_err(ProviderError::Http)?;
+        let response: GetRecordsResponse = serde_json::from_str(&text).map_err(ProviderError::Json)?;
+        let records: Vec<dns::Record> = response.try_into().map_err(|e: TryFromRecordError| ProviderError::Nitrado(Error::RecordConversion(e)))?;
 
         Ok(records)
     }
 
-    async fn add_record(&self, _reqwest: reqwest::Client, _input: &dns::Record) -> Result<()> {
+    async fn add_record(&self, _reqwest: reqwest::Client, _input: &dns::Record) -> Result<(), ProviderError> {
         unimplemented!()
     }
 
-    async fn update_record(&self, _reqwest: reqwest::Client, _input: &dns::Record) -> Result<()> {
+    async fn update_record(&self, _reqwest: reqwest::Client, _input: &dns::Record) -> Result<(), ProviderError> {
         unimplemented!()
     }
 
-    async fn delete_record(&self, _reqwest: reqwest::Client, _input: &dns::Record) -> Result<()> {
+    async fn delete_record(&self, _reqwest: reqwest::Client, _input: &dns::Record) -> Result<(), ProviderError> {
         unimplemented!()
     }
 }

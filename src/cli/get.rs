@@ -9,7 +9,7 @@ use crate::{
     cli::ExecutableCommand,
     config::provider::Provider as ProviderConfig,
     provider::{
-        GetAllRecordsInput, GetRecordsInput, Provider, hetzner::HetznerProvider,
+        GetAllRecordsInput, GetRecordsInput, Provider, ProviderError, hetzner::HetznerProvider,
         netcup::NetcupProvider, nitrado::NitradoProvider,
     },
 };
@@ -26,7 +26,13 @@ pub enum Error {
     ProviderNotConfigured(String),
 
     #[error("Provider error: {0}")]
-    ProviderError(#[from] anyhow::Error),
+    ProviderError(#[from] ProviderError),
+
+    #[error("Cannot specify both --all and specific subdomains")]
+    ConflictingArguments,
+
+    #[error("Must specify either --all or specific subdomains")]
+    MissingArguments,
 }
 
 #[derive(Debug, Args)]
@@ -94,16 +100,12 @@ impl<'command> ExecutableCommand<'command> for Command<'command> {
     async fn execute(&self, input: &'command Self::I) -> Self::R {
         if self.subdomain_args.all && !self.subdomain_args.subdomains.is_empty() {
             error!("Cannot specify both --all and specific subdomains");
-            return Err(Error::ProviderError(anyhow::anyhow!(
-                "Cannot specify both --all and specific subdomains"
-            )));
+            return Err(Error::ConflictingArguments);
         }
 
         if !self.subdomain_args.all && self.subdomain_args.subdomains.is_empty() {
             error!("Must specify either --all or specific subdomains");
-            return Err(Error::ProviderError(anyhow::anyhow!(
-                "Must specify either --all or specific subdomains"
-            )));
+            return Err(Error::MissingArguments);
         }
 
         let config = input.config;

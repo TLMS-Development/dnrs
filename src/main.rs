@@ -1,7 +1,7 @@
 use std::fmt::{self, Debug};
 use std::fs;
 
-use dnrs::{Config, RuntimeError, run, setup_logger};
+use dnrs::{Config, ConfigError, RuntimeError, run, setup_logger};
 use lum_config::{ConfigPathError, EnvironmentConfigParseError, FileConfigParseError};
 use lum_log::{info, log::SetLoggerError};
 use thiserror::Error;
@@ -59,7 +59,7 @@ enum Error {
     Io(#[from] std::io::Error),
 
     #[error("Config error: {0}")]
-    Config(#[from] anyhow::Error),
+    Config(#[from] ConfigError),
 
     #[error("Unable to determine config directory")]
     NoConfigDirectory,

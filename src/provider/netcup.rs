@@ -1,10 +1,9 @@
-use anyhow::Result;
 use async_trait::async_trait;
 use lum_libs::serde_json;
 use thiserror::Error;
 
 use crate::{
-    provider::{Feature, GetAllRecordsInput, Provider},
+    provider::{Feature, GetAllRecordsInput, Provider, ProviderError},
     types::dns::{self},
 };
 
@@ -37,6 +36,9 @@ pub enum Error {
 
     #[error("Domain '{0}' not found in Netcup zones")]
     DomainNotFound(String),
+
+    #[error("Record conversion error: {0}")]
+    RecordConversion(#[from] TryFromRecordError),
 }
 
 #[async_trait]
@@ -60,19 +62,19 @@ impl Provider for NetcupProvider<'_> {
         &self,
         _reqwest: reqwest::Client,
         _input: &GetAllRecordsInput,
-    ) -> Result<Vec<dns::Record>> {
+    ) -> Result<Vec<dns::Record>, ProviderError> {
         unimplemented!("Netcup get_all_records not yet implemented")
     }
 
-    async fn add_record(&self, _reqwest: reqwest::Client, _input: &dns::Record) -> Result<()> {
+    async fn add_record(&self, _reqwest: reqwest::Client, _input: &dns::Record) -> Result<(), ProviderError> {
         unimplemented!("Netcup add_record not yet implemented")
     }
 
-    async fn update_record(&self, _reqwest: reqwest::Client, _input: &dns::Record) -> Result<()> {
+    async fn update_record(&self, _reqwest: reqwest::Client, _input: &dns::Record) -> Result<(), ProviderError> {
         unimplemented!("Netcup update_record not yet implemented")
     }
 
-    async fn delete_record(&self, _reqwest: reqwest::Client, _input: &dns::Record) -> Result<()> {
+    async fn delete_record(&self, _reqwest: reqwest::Client, _input: &dns::Record) -> Result<(), ProviderError> {
         unimplemented!("Netcup delete_record not yet implemented")
     }
 }
