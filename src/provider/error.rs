@@ -31,8 +31,4 @@ pub enum ProviderError {
     /// Invalid API key format for HTTP headers
     #[error("Invalid API key: contains characters not allowed in HTTP headers")]
     InvalidApiKey,
-
-    /// Record conversion error
-    #[error("Failed to convert record: {0}")]
-    RecordConversion(String),
 }
