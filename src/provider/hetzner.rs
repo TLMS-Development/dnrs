@@ -114,7 +114,12 @@ impl Provider for HetznerProvider<'_> {
             self.provider_config.api_base_url, zone_id
         );
 
-        let response = reqwest.get(&url).headers(headers).send().await?;
+        let response = reqwest
+            .get(&url)
+            .headers(headers)
+            .send()
+            .await
+            .map_err(ProviderError::Http)?;
 
         if !response.status().is_success() {
             return Err(ProviderError::Hetzner(Error::Unsuccessful(response.status().as_u16(), response)));
