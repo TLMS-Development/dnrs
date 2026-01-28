@@ -122,15 +122,15 @@ impl Provider for HetznerProvider<'_> {
             .headers(headers)
             .send()
             .await
-            .map_err(Error::from)?;
+            .map_err(Error::Reqwest)?;
 
         if !response.status().is_success() {
             return Err(Error::Unsuccessful(response.status().as_u16(), response).into());
         }
 
-        let text = response.text().await.map_err(Error::from)?;
-        let response: GetRecordsResponse = serde_json::from_str(&text).map_err(Error::from)?;
-        let records: Vec<dns::Record> = response.try_into().map_err(Error::from)?;
+        let text = response.text().await.map_err(Error::Reqwest)?;
+        let response: GetRecordsResponse = serde_json::from_str(&text).map_err(Error::Json)?;
+        let records: Vec<dns::Record> = response.try_into().map_err(Error::RecordConversion)?;
 
         Ok(records)
     }
