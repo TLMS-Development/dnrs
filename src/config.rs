@@ -46,8 +46,8 @@ impl Config {
     pub fn load_from_directory(config_dir: impl AsRef<Path>) -> Result<Self, ConfigError> {
         let config_dir = config_dir.as_ref();
         let resolver = Self::load_resolver_config(config_dir)?;
-        let providers = Self::load_provider_configs(&config_dir.join("providers"))?;
-        let dns = Self::load_dns_configs(&config_dir.join("dns"))?;
+        let providers = Self::load_provider_configs(config_dir.join("providers"))?;
+        let dns = Self::load_dns_configs(config_dir.join("dns"))?;
 
         let loaded_config = Config {
             resolver,
@@ -71,7 +71,9 @@ impl Config {
         }
     }
 
-    fn load_provider_configs(providers_dir: impl AsRef<Path>) -> Result<Vec<Provider>, ConfigError> {
+    fn load_provider_configs(
+        providers_dir: impl AsRef<Path>,
+    ) -> Result<Vec<Provider>, ConfigError> {
         let providers_dir = providers_dir.as_ref();
         //TODO: Fail with error if providers config is missing
         if !providers_dir.exists() {
@@ -93,7 +95,7 @@ impl Config {
 
             if path
                 .extension()
-                .map_or(false, |ext| ext == "yaml" || ext == "yml")
+                .is_some_and(|ext| ext == "yaml" || ext == "yml")
             {
                 let content = fs::read_to_string(&path)?;
 
@@ -154,7 +156,7 @@ impl Config {
 
             if path
                 .extension()
-                .map_or(false, |ext| ext == "yaml" || ext == "yml")
+                .is_some_and(|ext| ext == "yaml" || ext == "yml")
             {
                 let content = fs::read_to_string(&path)?;
 
@@ -283,12 +285,10 @@ mod tests {
         let default_config = Config::default();
         let other = Config {
             resolver: resolver::Config::default(),
-            providers: vec![Provider::Nitrado(
-                nitrado::Config {
-                    name: "OtherNitrado".to_string(),
-                    ..Default::default()
-                },
-            )],
+            providers: vec![Provider::Nitrado(nitrado::Config {
+                name: "OtherNitrado".to_string(),
+                ..Default::default()
+            })],
             dns: vec![],
         };
 

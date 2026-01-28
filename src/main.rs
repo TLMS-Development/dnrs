@@ -68,7 +68,13 @@ enum Error {
     ConfigIsNotDirectory,
 
     #[error("Runtime error: {0}")]
-    Runtime(#[from] RuntimeError),
+    Runtime(Box<RuntimeError>),
+}
+
+impl From<RuntimeError> for Error {
+    fn from(err: RuntimeError) -> Self {
+        Error::Runtime(Box::new(err))
+    }
 }
 
 // When main() returns an `Error`, it will be printed using the `Display` implementation
