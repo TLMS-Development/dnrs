@@ -26,7 +26,7 @@ pub enum Error {
     ProviderNotConfigured(String),
 
     #[error("Provider error: {0}")]
-    ProviderError(#[from] ProviderError),
+    Provider(#[from] ProviderError),
 
     #[error("Cannot specify both --all and specific subdomains")]
     ConflictingArguments,
