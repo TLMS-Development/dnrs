@@ -1,11 +1,10 @@
-use anyhow::Result;
 use async_trait::async_trait;
 use lum_libs::serde_json;
 use reqwest::header::HeaderMap;
 use thiserror::Error;
 
 use crate::{
-    provider::{Feature, GetAllRecordsInput, Provider},
+    provider::{Feature, GetAllRecordsInput, Provider, ProviderError},
     types::dns::{self},
 };
 
@@ -24,18 +23,20 @@ impl<'provider_config> HetznerProvider<'provider_config> {
         HetznerProvider { provider_config }
     }
 
-    async fn get_zone_id(&self, reqwest: reqwest::Client, domain: &str) -> Result<String> {
+    async fn get_zone_id(&self, reqwest: reqwest::Client, domain: &str) -> Result<String, Error> {
         let mut headers = HeaderMap::new();
         headers.insert(
             "Auth-API-Token",
-            self.provider_config.api_key.parse().expect("Invalid Hetzner API key: contains characters that are not allowed in HTTP headers"),
+            self.provider_config.api_key.parse().expect(
+                "Invalid Hetzner API key: contains characters that are not allowed in HTTP headers",
+            ),
         );
 
         let url = format!("{}/zones", self.provider_config.api_base_url);
         let response = reqwest.get(&url).headers(headers).send().await?;
 
         if !response.status().is_success() {
-            return Err(Error::Unsuccessful(response.status().as_u16(), response).into());
+            return Err(Error::Unsuccessful(response.status().as_u16(), response));
         }
 
         let text = response.text().await?;
@@ -56,7 +57,7 @@ impl<'provider_config> HetznerProvider<'provider_config> {
                 })
             }) {
             Some(zone_id) => Ok(zone_id),
-            None => Err(Error::DomainNotFound(domain.to_string()).into()),
+            None => Err(Error::DomainNotFound(domain.to_string())),
         }
     }
 }
@@ -74,6 +75,9 @@ pub enum Error {
 
     #[error("Domain '{0}' not found in Hetzner zones")]
     DomainNotFound(String),
+
+    #[error("Record conversion error: {0}")]
+    RecordConversion(#[from] TryFromRecordError),
 }
 
 #[async_trait]
@@ -92,16 +96,17 @@ impl Provider for HetznerProvider<'_> {
         ]
     }
 
-
     async fn get_all_records(
         &self,
         reqwest: reqwest::Client,
         input: &GetAllRecordsInput,
-    ) -> Result<Vec<dns::Record>> {
+    ) -> Result<Vec<dns::Record>, ProviderError> {
         let mut headers = HeaderMap::new();
         headers.insert(
             "Auth-API-Token",
-            self.provider_config.api_key.parse().expect("Invalid Hetzner API key: contains characters that are not allowed in HTTP headers"),
+            self.provider_config.api_key.parse().expect(
+                "Invalid Hetzner API key: contains characters that are not allowed in HTTP headers",
+            ),
         );
 
         let domain = &input.domain;
@@ -112,28 +117,45 @@ impl Provider for HetznerProvider<'_> {
             self.provider_config.api_base_url, zone_id
         );
 
-        let response = reqwest.get(&url).headers(headers).send().await?;
+        let response = reqwest
+            .get(&url)
+            .headers(headers)
+            .send()
+            .await
+            .map_err(Error::Reqwest)?;
 
         if !response.status().is_success() {
             return Err(Error::Unsuccessful(response.status().as_u16(), response).into());
         }
 
-        let text = response.text().await?;
-        let response: GetRecordsResponse = serde_json::from_str(&text)?;
-        let records: Vec<dns::Record> = response.try_into()?;
+        let text = response.text().await.map_err(Error::Reqwest)?;
+        let response: GetRecordsResponse = serde_json::from_str(&text).map_err(Error::Json)?;
+        let records: Vec<dns::Record> = response.try_into().map_err(Error::RecordConversion)?;
 
         Ok(records)
     }
 
-    async fn add_record(&self, _reqwest: reqwest::Client, _input: &dns::Record) -> Result<()> {
+    async fn add_record(
+        &self,
+        _reqwest: reqwest::Client,
+        _input: &dns::Record,
+    ) -> Result<(), ProviderError> {
         unimplemented!("Hetzner add_record not yet implemented")
     }
 
-    async fn update_record(&self, _reqwest: reqwest::Client, _input: &dns::Record) -> Result<()> {
+    async fn update_record(
+        &self,
+        _reqwest: reqwest::Client,
+        _input: &dns::Record,
+    ) -> Result<(), ProviderError> {
         unimplemented!("Hetzner update_record not yet implemented")
     }
 
-    async fn delete_record(&self, _reqwest: reqwest::Client, _input: &dns::Record) -> Result<()> {
+    async fn delete_record(
+        &self,
+        _reqwest: reqwest::Client,
+        _input: &dns::Record,
+    ) -> Result<(), ProviderError> {
         unimplemented!("Hetzner delete_record not yet implemented")
     }
 }

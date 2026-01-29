@@ -3,7 +3,7 @@ use std::process::Command;
 #[test]
 fn test_help() {
     let output = Command::new("cargo")
-        .args(&["run", "--", "--help"])
+        .args(["run", "--", "--help"])
         .output()
         .expect("failed to execute process");
 
@@ -16,7 +16,7 @@ fn test_help() {
 #[test]
 fn test_generate_config_help() {
     let output = Command::new("cargo")
-        .args(&["run", "--", "generate-config", "--help"])
+        .args(["run", "--", "generate-config", "--help"])
         .output()
         .expect("failed to execute process");
 
@@ -33,7 +33,7 @@ fn test_generate_config_execution() {
     }
 
     let output = Command::new("cargo")
-        .args(&[
+        .args([
             "run",
             "--",
             "generate-config",
