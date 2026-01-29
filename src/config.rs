@@ -251,6 +251,41 @@ impl Default for Config {
     }
 }
 
+impl MergeFrom<Self> for Config {
+    /// Merges another configuration into this one.
+    ///
+    /// Values from `other` will override values in `self`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use dnrs::Config;
+    /// use lum_config::MergeFrom;
+    ///
+    /// let mut config = Config::default();
+    /// let mut other = Config::default();
+    /// other.resolver.ipv4.url = "https://example.com".to_string();
+    ///
+    /// let merged = config.merge_from(other);
+    /// assert_eq!(merged.resolver.ipv4.url, "https://example.com");
+    /// ```
+    fn merge_from(self, other: Self) -> Self {
+        Self {
+            resolver: other.resolver,
+            providers: if !other.providers.is_empty() {
+                other.providers
+            } else {
+                self.providers
+            },
+            dns: if !other.dns.is_empty() {
+                other.dns
+            } else {
+                self.dns
+            },
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -352,40 +387,5 @@ mod tests {
         assert!(result.is_err());
 
         fs::remove_dir_all(&temp_dir).unwrap();
-    }
-}
-
-impl MergeFrom<Self> for Config {
-    /// Merges another configuration into this one.
-    ///
-    /// Values from `other` will override values in `self`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use dnrs::Config;
-    /// use lum_config::MergeFrom;
-    ///
-    /// let mut config = Config::default();
-    /// let mut other = Config::default();
-    /// other.resolver.ipv4.url = "https://example.com".to_string();
-    ///
-    /// let merged = config.merge_from(other);
-    /// assert_eq!(merged.resolver.ipv4.url, "https://example.com");
-    /// ```
-    fn merge_from(self, other: Self) -> Self {
-        Self {
-            resolver: other.resolver,
-            providers: if !other.providers.is_empty() {
-                other.providers
-            } else {
-                self.providers
-            },
-            dns: if !other.dns.is_empty() {
-                other.dns
-            } else {
-                self.dns
-            },
-        }
     }
 }

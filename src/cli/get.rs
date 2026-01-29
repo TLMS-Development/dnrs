@@ -158,11 +158,13 @@ mod tests {
 
     #[test]
     fn test_get_provider_nitrado() {
-        let mut config = Config::default();
-        config.providers = vec![ProviderConfig::Nitrado(nitrado::Config {
-            name: "TestNitrado".to_string(),
+        let config = Config {
+            providers: vec![ProviderConfig::Nitrado(nitrado::Config {
+                name: "TestNitrado".to_string(),
+                ..Default::default()
+            })],
             ..Default::default()
-        })];
+        };
 
         let provider = get_provider("TestNitrado", &config).unwrap();
         assert_eq!(provider.get_provider_name(), "Nitrado");
@@ -170,11 +172,13 @@ mod tests {
 
     #[test]
     fn test_get_provider_hetzner() {
-        let mut config = Config::default();
-        config.providers = vec![ProviderConfig::Hetzner(hetzner::Config {
-            name: "TestHetzner".to_string(),
+        let config = Config {
+            providers: vec![ProviderConfig::Hetzner(hetzner::Config {
+                name: "TestHetzner".to_string(),
+                ..Default::default()
+            })],
             ..Default::default()
-        })];
+        };
 
         let provider = get_provider("TestHetzner", &config).unwrap();
         assert_eq!(provider.get_provider_name(), "Hetzner");
@@ -182,11 +186,13 @@ mod tests {
 
     #[test]
     fn test_get_provider_netcup() {
-        let mut config = Config::default();
-        config.providers = vec![ProviderConfig::Netcup(netcup::Config {
-            name: "TestNetcup".to_string(),
+        let config = Config {
+            providers: vec![ProviderConfig::Netcup(netcup::Config {
+                name: "TestNetcup".to_string(),
+                ..Default::default()
+            })],
             ..Default::default()
-        })];
+        };
 
         let provider = get_provider("TestNetcup", &config).unwrap();
         assert_eq!(provider.get_provider_name(), "Netcup");
