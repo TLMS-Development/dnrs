@@ -1,11 +1,13 @@
-use anyhow::Result;
 use async_trait::async_trait;
 
 use crate::types::dns::Record;
 
+pub mod error;
 pub mod hetzner;
 pub mod netcup;
 pub mod nitrado;
+
+pub use error::ProviderError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Feature {
@@ -70,12 +72,12 @@ pub trait Provider: Send + Sync {
         &self,
         reqwest: reqwest::Client,
         input: &GetRecordsInput,
-    ) -> Result<Vec<Record>> {
+    ) -> Result<Vec<Record>, ProviderError> {
         let get_all_records_input = GetAllRecordsInput::from(input);
         let records = self
             .get_all_records(reqwest, &get_all_records_input)
             .await?;
-        let records = records
+        let records: Vec<Record> = records
             .into_iter()
             .filter(|record| input.subdomains.contains(&record.domain.as_str()))
             .collect();
@@ -87,11 +89,23 @@ pub trait Provider: Send + Sync {
         &self,
         reqwest: reqwest::Client,
         input: &GetAllRecordsInput,
-    ) -> Result<Vec<Record>>;
+    ) -> Result<Vec<Record>, ProviderError>;
 
-    async fn add_record(&self, reqwest: reqwest::Client, record: &Record) -> Result<()>;
-    async fn update_record(&self, reqwest: reqwest::Client, record: &Record) -> Result<()>;
-    async fn delete_record(&self, reqwest: reqwest::Client, record: &Record) -> Result<()>;
+    async fn add_record(
+        &self,
+        reqwest: reqwest::Client,
+        record: &Record,
+    ) -> Result<(), ProviderError>;
+    async fn update_record(
+        &self,
+        reqwest: reqwest::Client,
+        record: &Record,
+    ) -> Result<(), ProviderError>;
+    async fn delete_record(
+        &self,
+        reqwest: reqwest::Client,
+        record: &Record,
+    ) -> Result<(), ProviderError>;
 }
 
 #[cfg(test)]
@@ -119,19 +133,31 @@ mod tests {
             &self,
             _reqwest: reqwest::Client,
             _input: &GetAllRecordsInput,
-        ) -> Result<Vec<Record>> {
+        ) -> Result<Vec<Record>, ProviderError> {
             Ok(self.records.clone())
         }
 
-        async fn add_record(&self, _reqwest: reqwest::Client, _record: &Record) -> Result<()> {
+        async fn add_record(
+            &self,
+            _reqwest: reqwest::Client,
+            _record: &Record,
+        ) -> Result<(), ProviderError> {
             unimplemented!()
         }
 
-        async fn update_record(&self, _reqwest: reqwest::Client, _record: &Record) -> Result<()> {
+        async fn update_record(
+            &self,
+            _reqwest: reqwest::Client,
+            _record: &Record,
+        ) -> Result<(), ProviderError> {
             unimplemented!()
         }
 
-        async fn delete_record(&self, _reqwest: reqwest::Client, _record: &Record) -> Result<()> {
+        async fn delete_record(
+            &self,
+            _reqwest: reqwest::Client,
+            _record: &Record,
+        ) -> Result<(), ProviderError> {
             unimplemented!()
         }
     }

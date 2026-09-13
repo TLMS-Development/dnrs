@@ -1,7 +1,8 @@
 use std::fmt::{self, Debug};
 use std::fs;
 
-use dnrs::{Config, RuntimeError, run, setup_logger};
+use dnrs::config::CreateExampleConfigError;
+use dnrs::{Config, ConfigError, RuntimeError, run, setup_logger};
 use lum_config::{ConfigPathError, EnvironmentConfigParseError, FileConfigParseError};
 use lum_log::{info, log::SetLoggerError};
 use thiserror::Error;
@@ -59,7 +60,10 @@ enum Error {
     Io(#[from] std::io::Error),
 
     #[error("Config error: {0}")]
-    Config(#[from] anyhow::Error),
+    Config(#[from] ConfigError),
+
+    #[error("Error creating example config: {0}")]
+    CreateExampleConfig(#[from] CreateExampleConfigError),
 
     #[error("Unable to determine config directory")]
     NoConfigDirectory,
@@ -78,29 +82,28 @@ impl Debug for Error {
     }
 }
 
-fn read_config() -> Result<Config, Error> {
+fn read_config() -> Result<Config, Box<Error>> {
     let config_dir = dirs::config_dir()
-        .ok_or(Error::NoConfigDirectory)?
+        .ok_or(Box::new(Error::NoConfigDirectory))?
         .join(APP_NAME);
 
     if config_dir.exists() && !config_dir.is_dir() {
-        return Err(Error::ConfigIsNotDirectory);
+        return Err(Box::new(Error::ConfigIsNotDirectory));
     }
 
     let config = if config_dir.exists() {
-        Config::load_from_directory(&config_dir)?
+        Config::load_from_directory(&config_dir).map_err(|e| Box::new(Error::from(e)))?
     } else {
         info!("Config directory does not exist, creating default structure...");
-        fs::create_dir_all(&config_dir)?;
+        fs::create_dir_all(&config_dir).map_err(|e| Box::new(Error::from(e)))?;
 
-        Config::create_example_structure(&config_dir)?;
+        Config::create_example_structure(&config_dir).map_err(|e| Box::new(Error::from(e)))?;
         info!(
             "Created default config structure at: {}",
             config_dir.display()
         );
         info!("Please configure your providers and DNS settings, then run again.");
 
-        //TODO: Handle first run better (signal to caller that config was created)
         Config::default()
     };
 
@@ -108,11 +111,11 @@ fn read_config() -> Result<Config, Error> {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Error> {
-    setup_logger()?;
+async fn main() -> Result<(), Box<Error>> {
+    setup_logger().map_err(|e| Box::new(Error::from(e)))?;
 
     let config = read_config()?;
-    run(config).await?;
+    run(config).await.map_err(|e| Box::new(Error::from(e)))?;
 
     Ok(())
 }

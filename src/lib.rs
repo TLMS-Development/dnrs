@@ -15,7 +15,7 @@ pub mod types;
 #[cfg(test)]
 mod cli_tests;
 
-pub use config::Config;
+pub use config::{Config, ConfigError};
 pub use logger::setup_logger;
 
 pub const PROGRAM_NAME: &str = env!("CARGO_PKG_NAME");

@@ -9,7 +9,7 @@ use crate::{
     cli::ExecutableCommand,
     config::provider::Provider as ProviderConfig,
     provider::{
-        GetAllRecordsInput, GetRecordsInput, Provider, hetzner::HetznerProvider,
+        GetAllRecordsInput, GetRecordsInput, Provider, ProviderError, hetzner::HetznerProvider,
         netcup::NetcupProvider, nitrado::NitradoProvider,
     },
 };
@@ -26,7 +26,13 @@ pub enum Error {
     ProviderNotConfigured(String),
 
     #[error("Provider error: {0}")]
-    ProviderError(#[from] anyhow::Error),
+    Provider(#[from] ProviderError),
+
+    #[error("Cannot specify both --all and specific subdomains")]
+    ConflictingArguments,
+
+    #[error("Must specify either --all or specific subdomains")]
+    MissingArguments,
 }
 
 #[derive(Debug, Args)]
@@ -94,16 +100,12 @@ impl<'command> ExecutableCommand<'command> for Command<'command> {
     async fn execute(&self, input: &'command Self::I) -> Self::R {
         if self.subdomain_args.all && !self.subdomain_args.subdomains.is_empty() {
             error!("Cannot specify both --all and specific subdomains");
-            return Err(Error::ProviderError(anyhow::anyhow!(
-                "Cannot specify both --all and specific subdomains"
-            )));
+            return Err(Error::ConflictingArguments);
         }
 
         if !self.subdomain_args.all && self.subdomain_args.subdomains.is_empty() {
             error!("Must specify either --all or specific subdomains");
-            return Err(Error::ProviderError(anyhow::anyhow!(
-                "Must specify either --all or specific subdomains"
-            )));
+            return Err(Error::MissingArguments);
         }
 
         let config = input.config;
@@ -156,11 +158,13 @@ mod tests {
 
     #[test]
     fn test_get_provider_nitrado() {
-        let mut config = Config::default();
-        config.providers = vec![ProviderConfig::Nitrado(nitrado::Config {
-            name: "TestNitrado".to_string(),
+        let config = Config {
+            providers: vec![ProviderConfig::Nitrado(nitrado::Config {
+                name: "TestNitrado".to_string(),
+                ..Default::default()
+            })],
             ..Default::default()
-        })];
+        };
 
         let provider = get_provider("TestNitrado", &config).unwrap();
         assert_eq!(provider.get_provider_name(), "Nitrado");
@@ -168,11 +172,13 @@ mod tests {
 
     #[test]
     fn test_get_provider_hetzner() {
-        let mut config = Config::default();
-        config.providers = vec![ProviderConfig::Hetzner(hetzner::Config {
-            name: "TestHetzner".to_string(),
+        let config = Config {
+            providers: vec![ProviderConfig::Hetzner(hetzner::Config {
+                name: "TestHetzner".to_string(),
+                ..Default::default()
+            })],
             ..Default::default()
-        })];
+        };
 
         let provider = get_provider("TestHetzner", &config).unwrap();
         assert_eq!(provider.get_provider_name(), "Hetzner");
@@ -180,11 +186,13 @@ mod tests {
 
     #[test]
     fn test_get_provider_netcup() {
-        let mut config = Config::default();
-        config.providers = vec![ProviderConfig::Netcup(netcup::Config {
-            name: "TestNetcup".to_string(),
+        let config = Config {
+            providers: vec![ProviderConfig::Netcup(netcup::Config {
+                name: "TestNetcup".to_string(),
+                ..Default::default()
+            })],
             ..Default::default()
-        })];
+        };
 
         let provider = get_provider("TestNetcup", &config).unwrap();
         assert_eq!(provider.get_provider_name(), "Netcup");

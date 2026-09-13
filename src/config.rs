@@ -1,9 +1,8 @@
-//TODO: No anyhow
-use anyhow::Result;
 use lum_config::MergeFrom;
 use lum_libs::serde::{Deserialize, Serialize};
-use lum_log::{debug, error, info};
-use std::{fs, path::Path};
+use lum_log::{debug, info};
+use std::{fs, io, path::Path};
+use thiserror::Error;
 
 use crate::{
     config::provider::Provider,
@@ -13,6 +12,65 @@ use crate::{
 pub mod dns;
 pub mod provider;
 pub mod resolver;
+
+/// Error type for resolver configuration loading and parsing.
+#[derive(Debug, Error)]
+pub enum ResolverConfigError {
+    #[error("IO error: {0}")]
+    Io(#[from] io::Error),
+
+    #[error("YAML parsing error: {0}")]
+    Yaml(#[from] serde_yaml_ng::Error),
+}
+
+/// Error type for provider configuration loading and parsing.
+#[derive(Debug, Error)]
+pub enum ProviderConfigError {
+    #[error("IO error: {0}")]
+    Io(#[from] io::Error),
+
+    #[error("YAML parsing error: {0}")]
+    Yaml(#[from] serde_yaml_ng::Error),
+
+    #[error("Unknown provider config file: {0}")]
+    UnknownProvider(String),
+}
+
+/// Error type for DNS configuration loading and parsing.
+#[derive(Debug, Error)]
+pub enum DnsConfigError {
+    #[error("IO error: {0}")]
+    Io(#[from] io::Error),
+
+    #[error("YAML parsing error: {0}")]
+    Yaml(#[from] serde_yaml_ng::Error),
+
+    #[error("Cannot determine DNS config type for file: {0}")]
+    UnknownDnsType(String),
+}
+
+/// Error type for configuration loading and parsing.
+#[derive(Debug, Error)]
+pub enum ConfigError {
+    #[error("Resolver config error: {0}")]
+    Resolver(#[from] ResolverConfigError),
+
+    #[error("Provider config error: {0}")]
+    Provider(#[from] ProviderConfigError),
+
+    #[error("DNS config error: {0}")]
+    Dns(#[from] DnsConfigError),
+}
+
+/// Error type for creating example configuration.
+#[derive(Debug, Error)]
+pub enum CreateExampleConfigError {
+    #[error("IO error: {0}")]
+    Io(#[from] io::Error),
+
+    #[error("YAML parsing error: {0}")]
+    Yaml(#[from] serde_yaml_ng::Error),
+}
 
 /// Configuration for the dnrs application.
 ///
@@ -28,11 +86,11 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn load_from_directory(config_dir: impl AsRef<Path>) -> Result<Self> {
+    pub fn load_from_directory(config_dir: impl AsRef<Path>) -> Result<Self, ConfigError> {
         let config_dir = config_dir.as_ref();
         let resolver = Self::load_resolver_config(config_dir)?;
-        let providers = Self::load_provider_configs(&config_dir.join("providers"))?;
-        let dns = Self::load_dns_configs(&config_dir.join("dns"))?;
+        let providers = Self::load_provider_configs(config_dir.join("providers"))?;
+        let dns = Self::load_dns_configs(config_dir.join("dns"))?;
 
         let loaded_config = Config {
             resolver,
@@ -44,7 +102,9 @@ impl Config {
         Ok(default_config.merge_from(loaded_config))
     }
 
-    fn load_resolver_config(config_dir: impl AsRef<Path>) -> Result<resolver::Config> {
+    fn load_resolver_config(
+        config_dir: impl AsRef<Path>,
+    ) -> Result<resolver::Config, ResolverConfigError> {
         let resolver_path = config_dir.as_ref().join("resolver.yaml");
 
         //TODO: Fail with error if resolver config is missing
@@ -56,9 +116,10 @@ impl Config {
         }
     }
 
-    fn load_provider_configs(providers_dir: impl AsRef<Path>) -> Result<Vec<Provider>> {
+    fn load_provider_configs(
+        providers_dir: impl AsRef<Path>,
+    ) -> Result<Vec<Provider>, ProviderConfigError> {
         let providers_dir = providers_dir.as_ref();
-        //TODO: Fail with error if providers config is missing
         if !providers_dir.exists() {
             info!(
                 "Providers directory {:?} does not exist, using defaults",
@@ -78,7 +139,7 @@ impl Config {
 
             if path
                 .extension()
-                .map_or(false, |ext| ext == "yaml" || ext == "yml")
+                .is_some_and(|ext| ext == "yaml" || ext == "yml")
             {
                 let content = fs::read_to_string(&path)?;
 
@@ -88,6 +149,7 @@ impl Config {
                     .unwrap_or("unknown");
 
                 //TODO: Hardcoded config file names. Detect type differently?
+                // Idea: Enum covering all config types
                 match file_stem {
                     "hetzner" => {
                         let config: hetzner::Config = serde_yaml_ng::from_str(&content)?;
@@ -105,25 +167,27 @@ impl Config {
                         debug!("Loaded Netcup provider config from {:?}", path);
                     }
                     _ => {
-                        error!("Unknown provider config file: {}", path.display());
+                        return Err(ProviderConfigError::UnknownProvider(
+                            path.display().to_string(),
+                        ));
                     }
                 }
             }
         }
 
+        // TODO: Somehow merge with empty dir error handling above
         if configs.is_empty() {
             info!("No provider configs found, using defaults");
             configs.push(Provider::Nitrado(nitrado::Config::default()));
             configs.push(Provider::Hetzner(hetzner::Config::default()));
+            configs.push(Provider::Netcup(netcup::Config::default()));
         }
 
         Ok(configs)
     }
 
-    fn load_dns_configs(dns_dir: impl AsRef<Path>) -> Result<Vec<dns::Type>> {
+    fn load_dns_configs(dns_dir: impl AsRef<Path>) -> Result<Vec<dns::Type>, DnsConfigError> {
         let dns_dir = dns_dir.as_ref();
-
-        //TODO: Fail with error if dns config is missing
         if !dns_dir.exists() {
             info!(
                 "DNS directory {:?} does not exist, using empty configs",
@@ -139,7 +203,7 @@ impl Config {
 
             if path
                 .extension()
-                .map_or(false, |ext| ext == "yaml" || ext == "yml")
+                .is_some_and(|ext| ext == "yaml" || ext == "yml")
             {
                 let content = fs::read_to_string(&path)?;
 
@@ -162,10 +226,7 @@ impl Config {
                     configs.push(dns::Type::Netcup(config));
                     debug!("Loaded Netcup DNS config from {:?}", path);
                 } else {
-                    error!(
-                        "Cannot determine DNS config type for file: {}",
-                        path.display()
-                    );
+                    return Err(DnsConfigError::UnknownDnsType(path.display().to_string()));
                 }
             }
         }
@@ -174,7 +235,9 @@ impl Config {
         Ok(configs)
     }
 
-    pub fn create_example_structure(config_dir: impl AsRef<Path>) -> Result<()> {
+    pub fn create_example_structure(
+        config_dir: impl AsRef<Path>,
+    ) -> Result<(), CreateExampleConfigError> {
         let config_dir = config_dir.as_ref();
 
         fs::create_dir_all(config_dir.join("providers"))?;
@@ -237,6 +300,41 @@ impl Default for Config {
     }
 }
 
+impl MergeFrom<Self> for Config {
+    /// Merges another configuration into this one.
+    ///
+    /// Values from `other` will override values in `self`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use dnrs::Config;
+    /// use lum_config::MergeFrom;
+    ///
+    /// let mut config = Config::default();
+    /// let mut other = Config::default();
+    /// other.resolver.ipv4.url = "https://example.com".to_string();
+    ///
+    /// let merged = config.merge_from(other);
+    /// assert_eq!(merged.resolver.ipv4.url, "https://example.com");
+    /// ```
+    fn merge_from(self, other: Self) -> Self {
+        Self {
+            resolver: other.resolver,
+            providers: if !other.providers.is_empty() {
+                other.providers
+            } else {
+                self.providers
+            },
+            dns: if !other.dns.is_empty() {
+                other.dns
+            } else {
+                self.dns
+            },
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -271,12 +369,10 @@ mod tests {
         let default_config = Config::default();
         let other = Config {
             resolver: resolver::Config::default(),
-            providers: vec![Provider::Nitrado(
-                nitrado::Config {
-                    name: "OtherNitrado".to_string(),
-                    ..Default::default()
-                },
-            )],
+            providers: vec![Provider::Nitrado(nitrado::Config {
+                name: "OtherNitrado".to_string(),
+                ..Default::default()
+            })],
             dns: vec![],
         };
 
@@ -340,40 +436,5 @@ mod tests {
         assert!(result.is_err());
 
         fs::remove_dir_all(&temp_dir).unwrap();
-    }
-}
-
-impl MergeFrom<Self> for Config {
-    /// Merges another configuration into this one.
-    ///
-    /// Values from `other` will override values in `self`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use dnrs::Config;
-    /// use lum_config::MergeFrom;
-    ///
-    /// let mut config = Config::default();
-    /// let mut other = Config::default();
-    /// other.resolver.ipv4.url = "https://example.com".to_string();
-    ///
-    /// let merged = config.merge_from(other);
-    /// assert_eq!(merged.resolver.ipv4.url, "https://example.com");
-    /// ```
-    fn merge_from(self, other: Self) -> Self {
-        Self {
-            resolver: other.resolver,
-            providers: if !other.providers.is_empty() {
-                other.providers
-            } else {
-                self.providers
-            },
-            dns: if !other.dns.is_empty() {
-                other.dns
-            } else {
-                self.dns
-            },
-        }
     }
 }

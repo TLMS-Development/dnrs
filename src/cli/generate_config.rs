@@ -4,7 +4,7 @@ use clap::Parser;
 use lum_log::info;
 use thiserror::Error;
 
-use crate::{Config, cli::ExecutableCommand};
+use crate::{Config, ConfigError, cli::ExecutableCommand, config::CreateExampleConfigError};
 
 #[derive(Debug)]
 pub struct Input<'config> {
@@ -20,7 +20,10 @@ pub enum Error {
     Yaml(#[from] serde_yaml_ng::Error),
 
     #[error("Config error: {0}")]
-    Config(#[from] anyhow::Error),
+    Config(#[from] ConfigError),
+
+    #[error("Error creating example config: {0}")]
+    CreateExampleConfig(#[from] CreateExampleConfigError),
 }
 
 /// Generate configuration directory structure
