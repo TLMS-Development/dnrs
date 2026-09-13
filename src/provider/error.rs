@@ -19,14 +19,12 @@ pub enum ProviderError {
     /// Error from Netcup DNS provider
     #[error("Netcup provider error: {0}")]
     Netcup(#[from] netcup::Error),
-
     //TODO: Add a generic provider error variant for add-on providers
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use lum_libs::serde_json;
 
     #[test]
     fn test_hetzner_error_display() {

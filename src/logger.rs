@@ -1,29 +1,24 @@
-use std::{collections::HashMap, io};
-
 use lum_log::{
-    Builder, Config, defaults,
-    log::{LevelFilter, SetLoggerError},
+    ConfigBuilder, ConfigBuilderError,
+    log::{LevelFilter::Info, SetLoggerError},
 };
+use thiserror::Error;
 
-pub fn setup_logger() -> Result<(), SetLoggerError> {
-    let mut colors = HashMap::new();
-    colors.insert(LevelFilter::Info, "Green".into());
-    colors.insert(LevelFilter::Error, "Red".into());
-    colors.insert(LevelFilter::Warn, "Yellow".into());
-    colors.insert(LevelFilter::Debug, "Purple".into());
-    colors.insert(LevelFilter::Trace, "Blue".into());
+#[derive(Debug, Error)]
+pub enum SetupLoggerError {
+    #[error("Config builder error: {0}")]
+    ConfigBuilderError(#[from] ConfigBuilderError),
 
-    let config = Config {
-        colors,
-        min_log_level: LevelFilter::Info,
-    };
+    #[error("Set logger error: {0}")]
+    SetLoggerError(#[from] SetLoggerError),
+}
 
-    let module_levels = [];
+pub fn setup_logger() -> Result<(), SetupLoggerError> {
+    let config = ConfigBuilder::default()
+        .root_log_level(Info)
+        .stdout_console_appender()
+        .build()?;
 
-    Builder::new(defaults::format())
-        .config(&config)
-        .chain(io::stdout())
-        .is_debug_build(cfg!(debug_assertions))
-        .module_levels(&module_levels)
-        .apply()
+    lum_log::setup(config)?;
+    Ok(())
 }

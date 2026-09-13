@@ -2,9 +2,10 @@ use std::fmt::{self, Debug};
 use std::fs;
 
 use dnrs::config::CreateExampleConfigError;
+use dnrs::logger::SetupLoggerError;
 use dnrs::{Config, ConfigError, RuntimeError, run, setup_logger};
 use lum_config::{ConfigPathError, EnvironmentConfigParseError, FileConfigParseError};
-use lum_log::{info, log::SetLoggerError};
+use lum_log::info;
 use thiserror::Error;
 
 /*
@@ -42,7 +43,7 @@ const APP_NAME: &str = "dnrs";
 #[derive(Error)]
 enum Error {
     #[error("Failed to setup logger: {0}")]
-    SetLogger(#[from] SetLoggerError),
+    SetupLogger(#[from] SetupLoggerError),
 
     #[error("Failed to parse environment config: {0}")]
     EnvConfig(#[from] EnvironmentConfigParseError),
