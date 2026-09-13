@@ -104,7 +104,6 @@ fn read_config() -> Result<Config, Box<Error>> {
         );
         info!("Please configure your providers and DNS settings, then run again.");
 
-        //TODO: Handle first run better (signal to caller that config was created)
         Config::default()
     };
 
