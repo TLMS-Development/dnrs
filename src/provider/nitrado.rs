@@ -56,7 +56,7 @@ impl Provider for NitradoProvider<'_> {
 
     async fn get_all_records(
         &self,
-        reqwest: reqwest::Client,
+        reqwest: &reqwest::Client,
         input: &GetAllRecordsInput,
     ) -> Result<Vec<dns::Record>, ProviderError> {
         let mut headers = HeaderMap::new();
@@ -92,7 +92,7 @@ impl Provider for NitradoProvider<'_> {
 
     async fn add_record(
         &self,
-        _reqwest: reqwest::Client,
+        _reqwest: &reqwest::Client,
         _input: &dns::Record,
     ) -> Result<(), ProviderError> {
         unimplemented!()
@@ -100,7 +100,7 @@ impl Provider for NitradoProvider<'_> {
 
     async fn update_record(
         &self,
-        _reqwest: reqwest::Client,
+        _reqwest: &reqwest::Client,
         _input: &dns::Record,
     ) -> Result<(), ProviderError> {
         unimplemented!()
@@ -108,7 +108,7 @@ impl Provider for NitradoProvider<'_> {
 
     async fn delete_record(
         &self,
-        _reqwest: reqwest::Client,
+        _reqwest: &reqwest::Client,
         _input: &dns::Record,
     ) -> Result<(), ProviderError> {
         unimplemented!()

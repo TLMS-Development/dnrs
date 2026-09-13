@@ -10,7 +10,6 @@ use thiserror::Error;
 use crate::types::dns::{self, MxRecord, RecordType, RecordValue};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(crate = "lum_libs::serde")]
 pub enum RecordMode {
     #[serde(rename = "auto")]
     Auto,
@@ -20,7 +19,6 @@ pub enum RecordMode {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(crate = "lum_libs::serde")]
 pub struct Record {
     pub r#type: RecordType,
     pub content: String,
@@ -184,7 +182,6 @@ impl TryFrom<Record> for dns::Record {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(crate = "lum_libs::serde")]
 pub struct GetRecordsResponse {
     pub status: String,
     pub message: Vec<Record>,
@@ -205,7 +202,7 @@ impl TryFrom<GetRecordsResponse> for Vec<dns::Record> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::dns::{RecordValue, RecordType};
+    use crate::types::dns::{RecordType, RecordValue};
 
     #[test]
     fn test_nitrado_record_to_dns_record_a() {
@@ -297,6 +294,9 @@ mod tests {
             mode: RecordMode::Manual,
         };
         let result = dns::Record::try_from(api_record);
-        assert!(matches!(result, Err(TryFromRecordError::UnsupportedRecordType(RecordType::NS))));
+        assert!(matches!(
+            result,
+            Err(TryFromRecordError::UnsupportedRecordType(RecordType::NS))
+        ));
     }
 }

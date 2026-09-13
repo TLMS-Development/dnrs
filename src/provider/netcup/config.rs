@@ -3,7 +3,6 @@ use lum_libs::serde::{Deserialize, Serialize};
 use crate::config::dns::RecordConfig;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(crate = "lum_libs::serde")]
 pub struct Config {
     pub name: String,
     pub customer_number: u32,
@@ -25,14 +24,12 @@ impl Default for Config {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(crate = "lum_libs::serde")]
 pub struct DomainConfig {
     pub domain: String,
     pub records: Vec<RecordConfig>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(crate = "lum_libs::serde")]
 pub struct DnsConfig {
     pub provider_name: String,
     pub domains: Vec<DomainConfig>,

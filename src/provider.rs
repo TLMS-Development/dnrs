@@ -70,7 +70,7 @@ pub trait Provider: Send + Sync {
 
     async fn get_records(
         &self,
-        reqwest: reqwest::Client,
+        reqwest: &reqwest::Client,
         input: &GetRecordsInput,
     ) -> Result<Vec<Record>, ProviderError> {
         let get_all_records_input = GetAllRecordsInput::from(input);
@@ -87,23 +87,23 @@ pub trait Provider: Send + Sync {
 
     async fn get_all_records(
         &self,
-        reqwest: reqwest::Client,
+        reqwest: &reqwest::Client,
         input: &GetAllRecordsInput,
     ) -> Result<Vec<Record>, ProviderError>;
 
     async fn add_record(
         &self,
-        reqwest: reqwest::Client,
+        reqwest: &reqwest::Client,
         record: &Record,
     ) -> Result<(), ProviderError>;
     async fn update_record(
         &self,
-        reqwest: reqwest::Client,
+        reqwest: &reqwest::Client,
         record: &Record,
     ) -> Result<(), ProviderError>;
     async fn delete_record(
         &self,
-        reqwest: reqwest::Client,
+        reqwest: &reqwest::Client,
         record: &Record,
     ) -> Result<(), ProviderError>;
 }
@@ -131,7 +131,7 @@ mod tests {
 
         async fn get_all_records(
             &self,
-            _reqwest: reqwest::Client,
+            _reqwest: &reqwest::Client,
             _input: &GetAllRecordsInput,
         ) -> Result<Vec<Record>, ProviderError> {
             Ok(self.records.clone())
@@ -139,7 +139,7 @@ mod tests {
 
         async fn add_record(
             &self,
-            _reqwest: reqwest::Client,
+            _reqwest: &reqwest::Client,
             _record: &Record,
         ) -> Result<(), ProviderError> {
             unimplemented!()
@@ -147,7 +147,7 @@ mod tests {
 
         async fn update_record(
             &self,
-            _reqwest: reqwest::Client,
+            _reqwest: &reqwest::Client,
             _record: &Record,
         ) -> Result<(), ProviderError> {
             unimplemented!()
@@ -155,7 +155,7 @@ mod tests {
 
         async fn delete_record(
             &self,
-            _reqwest: reqwest::Client,
+            _reqwest: &reqwest::Client,
             _record: &Record,
         ) -> Result<(), ProviderError> {
             unimplemented!()
@@ -193,7 +193,7 @@ mod tests {
             subdomains: vec!["a.example.com", "c.example.com"],
         };
 
-        let filtered = provider.get_records(reqwest, &input).await.unwrap();
+        let filtered = provider.get_records(&reqwest, &input).await.unwrap();
 
         assert_eq!(filtered.len(), 2);
         assert_eq!(filtered[0].domain, "a.example.com");

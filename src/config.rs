@@ -77,7 +77,6 @@ pub enum CreateExampleConfigError {
 /// This struct holds all the configuration required to run the application,
 /// including IP resolver settings, provider credentials, and DNS record definitions.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(crate = "lum_libs::serde")]
 #[serde(default)]
 pub struct Config {
     pub resolver: resolver::Config,

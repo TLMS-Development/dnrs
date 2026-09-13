@@ -3,7 +3,6 @@ use std::net::{Ipv4Addr, Ipv6Addr};
 use lum_libs::serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(crate = "lum_libs::serde")]
 pub struct MxRecord {
     pub priority: u16,
     pub target: String,
@@ -24,7 +23,6 @@ pub struct MxRecord {
 /// assert!(matches!(mx_record, RecordValue::MX(_)));
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(crate = "lum_libs::serde")]
 pub enum RecordValue {
     A(Ipv4Addr),
     AAAA(Ipv6Addr),
@@ -57,7 +55,6 @@ pub enum RecordValue {
 /// assert!(matches!(record.value, RecordValue::A(_)));
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(crate = "lum_libs::serde")]
 pub struct Record {
     pub domain: String,
     pub value: RecordValue,
@@ -65,7 +62,6 @@ pub struct Record {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(crate = "lum_libs::serde")]
 pub enum RecordType {
     A,
     AAAA,

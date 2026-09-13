@@ -116,14 +116,13 @@ impl<'command> ExecutableCommand<'command> for Command<'command> {
             None => return Err(Error::ProviderNotConfigured(provider_name.to_string())),
         };
 
-        let reqwest = reqwest::Client::new();
-
+        let reqwest = input.reqwest.clone();
         let results = if self.subdomain_args.all {
             let input = GetAllRecordsInput {
                 domain: self.domain.as_str(),
             };
 
-            provider.get_all_records(reqwest, &input).await
+            provider.get_all_records(&reqwest, &input).await
         } else {
             let input = GetRecordsInput {
                 domain: self.domain.as_str(),
@@ -135,7 +134,7 @@ impl<'command> ExecutableCommand<'command> for Command<'command> {
                     .collect(),
             };
 
-            provider.get_records(reqwest, &input).await
+            provider.get_records(&reqwest, &input).await
         };
 
         let records = match results {

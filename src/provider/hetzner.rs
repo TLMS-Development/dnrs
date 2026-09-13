@@ -22,7 +22,7 @@ impl<'provider_config> HetznerProvider<'provider_config> {
         HetznerProvider { provider_config }
     }
 
-    async fn get_zone_id(&self, reqwest: reqwest::Client, domain: &str) -> Result<String, Error> {
+    async fn get_zone_id(&self, reqwest: &reqwest::Client, domain: &str) -> Result<String, Error> {
         let mut headers = HeaderMap::new();
         headers.insert(
             "Auth-API-Token",
@@ -97,7 +97,7 @@ impl Provider for HetznerProvider<'_> {
 
     async fn get_all_records(
         &self,
-        reqwest: reqwest::Client,
+        reqwest: &reqwest::Client,
         input: &GetAllRecordsInput,
     ) -> Result<Vec<dns::Record>, ProviderError> {
         let mut headers = HeaderMap::new();
@@ -109,7 +109,7 @@ impl Provider for HetznerProvider<'_> {
         );
 
         let domain = &input.domain;
-        let zone_id = self.get_zone_id(reqwest.clone(), domain).await?;
+        let zone_id = self.get_zone_id(reqwest, domain).await?;
 
         let url = format!(
             "{}/records?zone_id={}",
@@ -136,7 +136,7 @@ impl Provider for HetznerProvider<'_> {
 
     async fn add_record(
         &self,
-        _reqwest: reqwest::Client,
+        _reqwest: &reqwest::Client,
         _input: &dns::Record,
     ) -> Result<(), ProviderError> {
         unimplemented!("Hetzner add_record not yet implemented")
@@ -144,7 +144,7 @@ impl Provider for HetznerProvider<'_> {
 
     async fn update_record(
         &self,
-        _reqwest: reqwest::Client,
+        _reqwest: &reqwest::Client,
         _input: &dns::Record,
     ) -> Result<(), ProviderError> {
         unimplemented!("Hetzner update_record not yet implemented")
@@ -152,7 +152,7 @@ impl Provider for HetznerProvider<'_> {
 
     async fn delete_record(
         &self,
-        _reqwest: reqwest::Client,
+        _reqwest: &reqwest::Client,
         _input: &dns::Record,
     ) -> Result<(), ProviderError> {
         unimplemented!("Hetzner delete_record not yet implemented")

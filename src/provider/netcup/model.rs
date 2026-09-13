@@ -10,7 +10,6 @@ use thiserror::Error;
 use crate::types::dns::{self, MxRecord, RecordType, RecordValue};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(crate = "lum_libs::serde")]
 pub struct Record {
     pub id: Option<String>,
     pub hostname: String,
@@ -234,7 +233,6 @@ mod tests {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(crate = "lum_libs::serde")]
 pub struct GetRecordsResponse {
     pub records: Vec<Record>,
 }

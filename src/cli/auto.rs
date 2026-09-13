@@ -7,6 +7,7 @@ use thiserror::Error;
 use crate::{
     Config,
     cli::ExecutableCommand,
+    provider::ProviderError,
     resolver::{self, IpResolverError, Ipv4ResolverConfig, Ipv6ResolverConfig},
 };
 
@@ -20,6 +21,9 @@ pub struct Input<'config> {
 pub enum Error {
     #[error("Failed to resolve IPv4 and IPv6 addresses: {0}; {1}")]
     ResolveIp(IpResolverError, IpResolverError),
+
+    #[error("Provider error: {0}")]
+    Provider(#[from] ProviderError),
 }
 
 /// Update providers as defined in the configuration file
@@ -36,13 +40,13 @@ impl<'command> ExecutableCommand<'command> for Command<'command> {
 
     async fn execute(&self, input: &'command Self::I) -> Self::R {
         let config = input.config;
-        let reqwest = reqwest::Client::new();
+        let reqwest = &input.reqwest;
 
         let ipv4_resolver_config = Ipv4ResolverConfig::from(config);
-        let ipv4 = resolver::resolve_ipv4(&ipv4_resolver_config, &reqwest).await;
+        let ipv4 = resolver::resolve_ipv4(&ipv4_resolver_config, reqwest).await;
 
         let ipv6_resolver_config = Ipv6ResolverConfig::from(config);
-        let ipv6 = resolver::resolve_ipv6(&ipv6_resolver_config, &reqwest).await;
+        let ipv6 = resolver::resolve_ipv6(&ipv6_resolver_config, reqwest).await;
 
         match (ipv4, ipv6) {
             (Ok(ipv4), Ok(ipv6)) => {

@@ -58,7 +58,7 @@ impl Provider for NetcupProvider<'_> {
 
     async fn get_all_records(
         &self,
-        _reqwest: reqwest::Client,
+        _reqwest: &reqwest::Client,
         _input: &GetAllRecordsInput,
     ) -> Result<Vec<dns::Record>, ProviderError> {
         unimplemented!("Netcup get_all_records not yet implemented")
@@ -66,7 +66,7 @@ impl Provider for NetcupProvider<'_> {
 
     async fn add_record(
         &self,
-        _reqwest: reqwest::Client,
+        _reqwest: &reqwest::Client,
         _input: &dns::Record,
     ) -> Result<(), ProviderError> {
         unimplemented!("Netcup add_record not yet implemented")
@@ -74,7 +74,7 @@ impl Provider for NetcupProvider<'_> {
 
     async fn update_record(
         &self,
-        _reqwest: reqwest::Client,
+        _reqwest: &reqwest::Client,
         _input: &dns::Record,
     ) -> Result<(), ProviderError> {
         unimplemented!("Netcup update_record not yet implemented")
@@ -82,7 +82,7 @@ impl Provider for NetcupProvider<'_> {
 
     async fn delete_record(
         &self,
-        _reqwest: reqwest::Client,
+        _reqwest: &reqwest::Client,
         _input: &dns::Record,
     ) -> Result<(), ProviderError> {
         unimplemented!("Netcup delete_record not yet implemented")

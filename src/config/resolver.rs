@@ -2,7 +2,6 @@ use lum_libs::serde::{Deserialize, Serialize};
 
 /// Represents the type of an IP resolver.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(crate = "lum_libs::serde")]
 pub enum IpResolverType {
     /// The response is a raw IP address string.
     Raw,
@@ -26,7 +25,6 @@ pub enum IpResolverType {
 /// assert!(matches!(resolver.type_, IpResolverType::Raw));
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(crate = "lum_libs::serde")]
 pub struct IpResolver {
     pub url: String,
 
@@ -35,7 +33,6 @@ pub struct IpResolver {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(crate = "lum_libs::serde")]
 pub struct Config {
     pub ipv4: IpResolver,
     pub ipv6: IpResolver,
