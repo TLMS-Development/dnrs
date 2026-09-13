@@ -27,12 +27,15 @@ pub enum RuntimeError {
     Command(#[from] cli::command::Error),
 }
 
-pub async fn run(config: Config) -> Result<(), RuntimeError> {
+pub async fn run(config: Config) -> Result<(), Box<RuntimeError>> {
     let start = Instant::now();
 
     let command = Command::parse();
     let input = Input { config: &config };
-    command.execute(&input).await?;
+    command
+        .execute(&input)
+        .await
+        .map_err(|error| Box::new(RuntimeError::from(error)))?;
 
     let elapsed = start.elapsed();
     debug!("Done in {}ms", elapsed.as_millis());

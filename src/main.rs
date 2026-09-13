@@ -73,7 +73,7 @@ enum Error {
     ConfigIsNotDirectory,
 
     #[error("Runtime error: {0}")]
-    Runtime(#[from] RuntimeError),
+    Runtime(#[from] Box<RuntimeError>),
 }
 
 // When main() returns an `Error`, it will be printed using the `Display` implementation
@@ -116,7 +116,9 @@ async fn main() -> Result<(), Box<Error>> {
     setup_logger().map_err(|e| Box::new(Error::from(e)))?;
 
     let config = read_config()?;
-    run(config).await.map_err(|e| Box::new(Error::from(e)))?;
+    run(config)
+        .await
+        .map_err(|error| Box::new(Error::from(error)))?;
 
     Ok(())
 }
