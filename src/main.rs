@@ -1,6 +1,7 @@
 use std::fmt::{self, Debug};
 use std::fs;
 
+use dnrs::config::CreateExampleConfigError;
 use dnrs::{Config, ConfigError, RuntimeError, run, setup_logger};
 use lum_config::{ConfigPathError, EnvironmentConfigParseError, FileConfigParseError};
 use lum_log::{info, log::SetLoggerError};
@@ -60,6 +61,9 @@ enum Error {
 
     #[error("Config error: {0}")]
     Config(#[from] ConfigError),
+
+    #[error("Error creating example config: {0}")]
+    CreateExampleConfig(#[from] CreateExampleConfigError),
 
     #[error("Unable to determine config directory")]
     NoConfigDirectory,
